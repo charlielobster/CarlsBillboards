@@ -41,6 +41,8 @@ struct intTriangle
 	Point c;
 };
 
+#define CROSS(a, b) ((a.x * b.y) - (a.y * b.x))
+
 class Carl
 {
 public:
@@ -62,6 +64,8 @@ public:
 	doubleTriangle triangles[400];
 	doubleTriangle screenTriangles[400];
 	vector<doubleTriangle> tiles;
+	vector<doubleTriangle> screenTiles;
+	int tileCount = 0;
 
 	unsigned short n;
 	double min0 = MAX_DOUBLE, min1 = MAX_DOUBLE, minr00 = MAX_DOUBLE, minr01 = MAX_DOUBLE, minr10 = MAX_DOUBLE, minr11 = MAX_DOUBLE, minr20 = MAX_DOUBLE, minr21 = MAX_DOUBLE, minr30 = MAX_DOUBLE, minr31 = MAX_DOUBLE;
@@ -157,8 +161,50 @@ public:
 			triangles[n + i].b.y = r2s[i][1];
 			triangles[n + i].c.x = r3s[i][0];
 			triangles[n + i].c.y = r3s[i][1];
+
+			bool result0 = false;
+			bool resultn = false;
+			for (int j = 0; j < tileCount; j++) {
+
+				result0 = trianglesIntersect(i, j);
+				resultn = trianglesIntersect(n + i, j);
+			}
+			if (!result0) {
+				tiles.push_back(triangles[i]);
+				tileCount++;
+			}
+			if (!resultn) {
+				tiles.push_back(triangles[n + i]);
+				tileCount++;
+			}
 		}
+		screenTiles.resize(tileCount);
 	}
+
+	bool trianglesIntersect(int i, int j) {
+		// we are interested in knowing if co-planar triangles[i] intersects triangle tiles[j]
+		bool result = false;
+		doubleTriangle ii = triangles[i];
+		doubleTriangle jj = tiles[j];
+
+
+		return result;
+	}
+
+
+	bool sameSide(doublePoint p1, doublePoint p2, doublePoint a, doublePoint b) {
+		double 
+	}
+	//function SameSide(p1, p2, a, b)
+	//	cp1 = CrossProduct(b - a, p1 - a)
+	//	cp2 = CrossProduct(b - a, p2 - a)
+	//	if DotProduct(cp1, cp2) >= 0 then return true
+	//	else return false
+
+	//		function PointInTriangle(p, a, b, c)
+	//		if SameSide(p, a, b, c) and SameSide(p, b, a, c)
+	//			and SameSide(p, c, a, b) then return true
+	//		else return false
 
 	void resize(double minScreen)
 	{
@@ -191,6 +237,16 @@ public:
 			screenTriangles[n + i].b.y = triangles[n + i].b.y * minScreen;
 			screenTriangles[n + i].c.x = triangles[n + i].c.x * minScreen;
 			screenTriangles[n + i].c.y = triangles[n + i].c.y * minScreen;
+		}
+
+		for (int i = 0; i < tileCount; i++) {
+
+			screenTiles[i].a.x = tiles[i].a.x * minScreen;
+			screenTiles[i].a.y = tiles[i].a.y * minScreen;
+			screenTiles[i].b.x = tiles[i].b.x * minScreen;
+			screenTiles[i].b.y = tiles[i].b.y * minScreen;
+			screenTiles[i].c.x = tiles[i].c.x * minScreen;
+			screenTiles[i].c.y = tiles[i].c.y * minScreen;
 		}
 	}
 
