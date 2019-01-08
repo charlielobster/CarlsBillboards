@@ -23,15 +23,18 @@ using namespace std;
 #define MAX_N 49
 
 struct doublePoint {
+public:
+	doublePoint() : x(0.0), y(0.0) {}
+	doublePoint(double x, double y) : x(x), y(y) {}
+	friend doublePoint operator-(const doublePoint &p, const doublePoint &q) { return doublePoint(p.x - q.x, p.y - q.y); }
 	double x = 0.0;
 	double y = 0.0;
 };
 
 struct doubleTriangle
 {
-	doublePoint a;
-	doublePoint b;
-	doublePoint c;
+public:
+	doublePoint vertices[3];
 };
 
 struct intTriangle
@@ -40,8 +43,6 @@ struct intTriangle
 	Point b;
 	Point c;
 };
-
-#define CROSS(a, b) ((a.x * b.y) - (a.y * b.x))
 
 class Carl
 {
@@ -72,10 +73,50 @@ public:
 	double max0 = MIN_DOUBLE, max1 = MIN_DOUBLE, maxr00 = MIN_DOUBLE, maxr01 = MIN_DOUBLE, maxr10 = MIN_DOUBLE, maxr11 = MIN_DOUBLE, maxr20 = MIN_DOUBLE, maxr21 = MIN_DOUBLE, maxr30 = MIN_DOUBLE, maxr31 = MIN_DOUBLE;
 	double min, max, d;
 
+	double crossProduct(const doublePoint &p, const doublePoint &q)
+	{
+		return (q.y * p.x - q.x * p.y);
+	}
+
+	bool sameSide(doublePoint &p1, doublePoint &p2, const doublePoint &a, doublePoint &b)
+	{
+		double cp1 = crossProduct(b - a, p1 - a);
+		double cp2 = crossProduct(b - a, p2 - a);
+		if ((cp1 * cp2) >= 0.0) {
+			return true;
+		} else {
+			return false;
+		}
+	}
+
+	bool pointInTriangle(doublePoint &p, doubleTriangle &t) 
+	{
+		if (sameSide(p, t.vertices[0], t.vertices[1], t.vertices[2]) && 
+			sameSide(p, t.vertices[1], t.vertices[0], t.vertices[2]) && 
+			sameSide(p, t.vertices[2], t.vertices[0], t.vertices[1])) {
+			return true;
+		} else {
+			return false;
+		}
+	}
+
+	bool trianglesIntersect(int i, int j) 
+	{
+		// determine if co-planar triangles triangles[i] intersects (triangle) tiles[j]
+		bool result = false;
+		unsigned short k = 0;
+		while (!result && k < 3) {
+ 			doublePoint p = triangles[i].vertices[k];
+			result = pointInTriangle(p, tiles[j]);
+			k++;
+		}
+		return result;
+	}
+
 	void init()
 	{
-		srand((unsigned int)time(0));
-		n = (rand() % MAX_N + 1);
+		//srand((unsigned int)time(0));
+		n = 20; // (rand() % MAX_N + 1);
 		n += (n % 2);
 
 		for (int i = 0; i < n; i++) {
@@ -148,26 +189,34 @@ public:
 			r3s[i][0] = (r3s[i][0] - min) / d;
 			r3s[i][1] = (r3s[i][1] - min) / d;
 
-			triangles[i].a.x = r0s[i][0];
-			triangles[i].a.y = r0s[i][1];
-			triangles[i].b.x = r1s[i][0];
-			triangles[i].b.y = r1s[i][1];
-			triangles[i].c.x = r2s[i][0];
-			triangles[i].c.y = r2s[i][1];
+			triangles[i].vertices[0].x = r0s[i][0];
+			triangles[i].vertices[0].y = r0s[i][1];
+			triangles[i].vertices[1].x = r1s[i][0];
+			triangles[i].vertices[1].y = r1s[i][1];
+			triangles[i].vertices[2].x = r2s[i][0];
+			triangles[i].vertices[2].y = r2s[i][1];
 
-			triangles[n + i].a.x = r1s[i][0];
-			triangles[n + i].a.y = r1s[i][1];
-			triangles[n + i].b.x = r2s[i][0];
-			triangles[n + i].b.y = r2s[i][1];
-			triangles[n + i].c.x = r3s[i][0];
-			triangles[n + i].c.y = r3s[i][1];
+			triangles[n + i].vertices[0].x = r1s[i][0];
+			triangles[n + i].vertices[0].y = r1s[i][1];
+			triangles[n + i].vertices[1].x = r2s[i][0];
+			triangles[n + i].vertices[1].y = r2s[i][1];
+			triangles[n + i].vertices[2].x = r3s[i][0];
+			triangles[n + i].vertices[2].y = r3s[i][1];
 
+		}
+
+		tiles.push_back(triangles[0]);
+		tiles.push_back(triangles[n]);
+		tileCount = 2;
+
+		for (int i = 1; i < n; i++) {
 			bool result0 = false;
 			bool resultn = false;
-			for (int j = 0; j < tileCount; j++) {
-
+			unsigned short j = 0;
+			while (!result0 && !resultn && (j < tileCount)) {
 				result0 = trianglesIntersect(i, j);
 				resultn = trianglesIntersect(n + i, j);
+				j++;
 			}
 			if (!result0) {
 				tiles.push_back(triangles[i]);
@@ -180,31 +229,6 @@ public:
 		}
 		screenTiles.resize(tileCount);
 	}
-
-	bool trianglesIntersect(int i, int j) {
-		// we are interested in knowing if co-planar triangles[i] intersects triangle tiles[j]
-		bool result = false;
-		doubleTriangle ii = triangles[i];
-		doubleTriangle jj = tiles[j];
-
-
-		return result;
-	}
-
-
-	bool sameSide(doublePoint p1, doublePoint p2, doublePoint a, doublePoint b) {
-		double 
-	}
-	//function SameSide(p1, p2, a, b)
-	//	cp1 = CrossProduct(b - a, p1 - a)
-	//	cp2 = CrossProduct(b - a, p2 - a)
-	//	if DotProduct(cp1, cp2) >= 0 then return true
-	//	else return false
-
-	//		function PointInTriangle(p, a, b, c)
-	//		if SameSide(p, a, b, c) and SameSide(p, b, a, c)
-	//			and SameSide(p, c, a, b) then return true
-	//		else return false
 
 	void resize(double minScreen)
 	{
@@ -224,29 +248,29 @@ public:
 			screenr3s[i][0] = r3s[i][0] * minScreen;
 			screenr3s[i][1] = r3s[i][1] * minScreen;
 
-			screenTriangles[i].a.x = triangles[i].a.x * minScreen;
-			screenTriangles[i].a.y = triangles[i].a.y * minScreen;
-			screenTriangles[i].b.x = triangles[i].b.x * minScreen;
-			screenTriangles[i].b.y = triangles[i].b.y * minScreen;
-			screenTriangles[i].c.x = triangles[i].c.x * minScreen;
-			screenTriangles[i].c.y = triangles[i].c.y * minScreen;
+			screenTriangles[i].vertices[0].x = triangles[i].vertices[0].x * minScreen;
+			screenTriangles[i].vertices[0].y = triangles[i].vertices[0].y * minScreen;
+			screenTriangles[i].vertices[1].x = triangles[i].vertices[1].x * minScreen;
+			screenTriangles[i].vertices[1].y = triangles[i].vertices[1].y * minScreen;
+			screenTriangles[i].vertices[2].x = triangles[i].vertices[2].x * minScreen;
+			screenTriangles[i].vertices[2].y = triangles[i].vertices[2].y * minScreen;
 
-			screenTriangles[n + i].a.x = triangles[n + i].a.x * minScreen;
-			screenTriangles[n + i].a.y = triangles[n + i].a.y * minScreen;
-			screenTriangles[n + i].b.x = triangles[n + i].b.x * minScreen;
-			screenTriangles[n + i].b.y = triangles[n + i].b.y * minScreen;
-			screenTriangles[n + i].c.x = triangles[n + i].c.x * minScreen;
-			screenTriangles[n + i].c.y = triangles[n + i].c.y * minScreen;
+			screenTriangles[n + i].vertices[0].x = triangles[n + i].vertices[0].x * minScreen;
+			screenTriangles[n + i].vertices[0].y = triangles[n + i].vertices[0].y * minScreen;
+			screenTriangles[n + i].vertices[1].x = triangles[n + i].vertices[1].x * minScreen;
+			screenTriangles[n + i].vertices[1].y = triangles[n + i].vertices[1].y * minScreen;
+			screenTriangles[n + i].vertices[2].x = triangles[n + i].vertices[2].x * minScreen;
+			screenTriangles[n + i].vertices[2].y = triangles[n + i].vertices[2].y * minScreen;
 		}
 
 		for (int i = 0; i < tileCount; i++) {
 
-			screenTiles[i].a.x = tiles[i].a.x * minScreen;
-			screenTiles[i].a.y = tiles[i].a.y * minScreen;
-			screenTiles[i].b.x = tiles[i].b.x * minScreen;
-			screenTiles[i].b.y = tiles[i].b.y * minScreen;
-			screenTiles[i].c.x = tiles[i].c.x * minScreen;
-			screenTiles[i].c.y = tiles[i].c.y * minScreen;
+			screenTiles[i].vertices[0].x = tiles[i].vertices[0].x * minScreen;
+			screenTiles[i].vertices[0].y = tiles[i].vertices[0].y * minScreen;
+			screenTiles[i].vertices[1].x = tiles[i].vertices[1].x * minScreen;
+			screenTiles[i].vertices[1].y = tiles[i].vertices[1].y * minScreen;
+			screenTiles[i].vertices[2].x = tiles[i].vertices[2].x * minScreen;
+			screenTiles[i].vertices[2].y = tiles[i].vertices[2].y * minScreen;
 		}
 	}
 
@@ -282,13 +306,26 @@ public:
 		g.DrawPath(&p, &path);
 	}
 
+	void drawTiles(Graphics &g, int i)
+	{
+		Pen p(Color(255, 0, 0));
+		GraphicsPath path;
+		Point a(screenTiles[i].vertices[0].x, screenTiles[i].vertices[0].y);
+		Point b(screenTiles[i].vertices[1].x, screenTiles[i].vertices[1].y);
+		Point c(screenTiles[i].vertices[2].x, screenTiles[i].vertices[2].y);
+		path.AddLine(a, b);
+		path.AddLine(b, c);
+		path.AddLine(c, a);
+		g.DrawPath(&p, &path);
+	}
+
 	void drawTriangles(Graphics &g, int i)
 	{
 		Pen p(Color(255, 0, 0));
 		GraphicsPath path;
-		Point a(screenTriangles[i].a.x, screenTriangles[i].a.y);
-		Point b(screenTriangles[i].b.x, screenTriangles[i].b.y);
-		Point c(screenTriangles[i].c.x, screenTriangles[i].c.y);
+		Point a(screenTriangles[i].vertices[0].x, screenTriangles[i].vertices[0].y);
+		Point b(screenTriangles[i].vertices[1].x, screenTriangles[i].vertices[1].y);
+		Point c(screenTriangles[i].vertices[2].x, screenTriangles[i].vertices[2].y);
 		path.AddLine(a, b);
 		path.AddLine(b, c);
 		path.AddLine(c, a);
@@ -325,22 +362,25 @@ public:
 		for (int i = 0; i < n; i++) {
 			fillRect(g, i);
 		}
-		for (int i = 0; i < n; i++) {
-			drawTriangles(g, i);
-			drawTriangles(g, n + i);
+		for (int i = 0; i < tileCount; i++) {
+			drawTiles(g, i);
 		}
-		for (int i = 0; i < n; i++) {
-			drawRect(g, i);
-		}
-		for (int i = 0; i < n; i++) {
-			drawRectEndPoints(g, i);
-		}
-		for (int i = 0; i < n; i++) {
-			paintLine(g, i);
-		}
-		for (int i = 0; i < n; i++) {
-			paintLineEndPoints(g, i);
-		}
+		//for (int i = 0; i < n; i++) {
+		//	drawTriangles(g, i);
+		//	drawTriangles(g, n + i);
+		//}
+		//for (int i = 0; i < n; i++) {
+		//	drawRect(g, i);
+		//}
+		//for (int i = 0; i < n; i++) {
+		//	drawRectEndPoints(g, i);
+		//}
+		//for (int i = 0; i < n; i++) {
+		//	paintLine(g, i);
+		//}
+		//for (int i = 0; i < n; i++) {
+		//	paintLineEndPoints(g, i);
+		//}
 	}
 };
 
