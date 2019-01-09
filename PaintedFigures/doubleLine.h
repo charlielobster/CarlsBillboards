@@ -11,14 +11,8 @@ public:
 	doubleLine() {}
 	doubleLine(double d) : p(d), q(d), pq(0) {}
 	doubleLine(const doubleLine &l) : p(l.p), q(l.q), pq(l.pq) {}
-	doubleLine(const doublePoint &p, const doublePoint &q) : p(p), q(q) { pq = q - p; }
-
-	doubleLine(double px, double py, double qx, double qy) : p(px, py), q(qx, qy), pq(q - p)
-	{
-		double dy = pq.y;
-		double dx = pq.x;
-		double abs = pq.distance();
-	}
+	doubleLine(const doublePoint &p, const doublePoint &q) : p(p), q(q), pq(q - p) {}
+	doubleLine(double px, double py, double qx, double qy) : p(px, py), q(qx, qy), pq(q - p) {}
 
 	inline doubleLine &operator=(const doubleLine &l)
 	{

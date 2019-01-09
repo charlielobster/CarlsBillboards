@@ -26,12 +26,12 @@ public:
 		return *this;
 	}
 
-	inline friend const doublePoint &operator-(const doublePoint &q, const doublePoint &p) 
+	inline friend doublePoint operator-(const doublePoint &q, const doublePoint &p) 
 	{ 
 		return doublePoint(q.x - p.x, q.y - p.y); 
 	}
 
-	inline friend const doublePoint &operator+(const doublePoint &p, const doublePoint &q) 
+	inline friend doublePoint operator+(const doublePoint &p, const doublePoint &q) 
 	{ 
 		return doublePoint(p.x + q.x, p.y + q.y); 
 	}

@@ -8,10 +8,8 @@ class capsule
 {
 public:
 	doubleLine line;
-	doubleLine nl;
 	double radius;
 	doubleRect rect;
-	doubleRect nr;
 	capsule() {}
 	capsule(const capsule &c) : line(c.line), radius(c.radius) { init(); }
 	capsule(const doubleLine &l, double r) : line(l), radius(r) { init(); }
@@ -36,10 +34,13 @@ public:
 		return min(line.maxValue(), rect.maxValue());
 	}
 
-	inline void normalize(double min, double d)
+	inline capsule normalized(double min, double d)
 	{
-		nl = line.normalized(min, d);
-		nr = rect.normalized(min, d);
+		capsule c;
+		c.line = line.normalized(min, d);
+		c.rect = rect.normalized(min, d);
+		c.radius = radius / d;
+		return c;
 	}
 
 private:

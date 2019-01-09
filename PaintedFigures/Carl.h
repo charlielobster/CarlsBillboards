@@ -29,6 +29,7 @@ class Carl
 {
 public:
 	capsule capsules[200];
+	capsule normalized[200];
 	//double l0s[200][2];
 	//double l1s[200][2];
 	//double r0s[200][2];
@@ -55,7 +56,7 @@ public:
 	unsigned short n;
 	//double min0 = MAX_DOUBLE, min1 = MAX_DOUBLE, minr00 = MAX_DOUBLE, minr01 = MAX_DOUBLE, minr10 = MAX_DOUBLE, minr11 = MAX_DOUBLE, minr20 = MAX_DOUBLE, minr21 = MAX_DOUBLE, minr30 = MAX_DOUBLE, minr31 = MAX_DOUBLE;
 	//double max0 = MIN_DOUBLE, max1 = MIN_DOUBLE, maxr00 = MIN_DOUBLE, maxr01 = MIN_DOUBLE, maxr10 = MIN_DOUBLE, maxr11 = MIN_DOUBLE, maxr20 = MIN_DOUBLE, maxr21 = MIN_DOUBLE, maxr30 = MIN_DOUBLE, maxr31 = MIN_DOUBLE;
-	double min, max, d;
+	double min = MAX_DOUBLE, max = MIN_DOUBLE, d = 0;
 
 	double crossProduct(const doublePoint &p, const doublePoint &q)
 	{
@@ -204,7 +205,7 @@ public:
 	void init()
 	{
 		//srand((unsigned int)time(0));
-		n = 20; // (rand() % MAX_N + 1
+		n = 1; // (rand() % MAX_N + 1
 		n += (n % 2);
 
 		for (int i = 0; i < n; i++) {
@@ -272,7 +273,7 @@ public:
 
 		for (int i = 0; i < n; i++) {
 
-			capsules[i].normalize(min, d);
+			normalized[i] = capsules[i].normalized(min, d);
 
 			//l0s[i][0] = (p0s[i][0] - min) / d;
 			//l0s[i][1] = (p0s[i][1] - min) / d;
@@ -288,7 +289,7 @@ public:
 			//r3s[i][0] = (r3s[i][0] - min) / d;
 			//r3s[i][1] = (r3s[i][1] - min) / d;
 
-			doubleRect r = capsules[i].nr;
+			doubleRect r = normalized[i].rect;
 			doubleTriangle t1(r.vertices[0], r.vertices[1], r.vertices[2]);
 			triangles.push_back(t1);
 			doubleTriangle t2(r.vertices[1], r.vertices[2], r.vertices[3]);
@@ -333,9 +334,9 @@ public:
 	{
 		for (int i = 0; i < n; i++) {
 
-			doubleRect r = capsules[i].nr * minScreen;
+			doubleRect r = normalized[i].rect * minScreen;
 			screenRects.push_back(r);
-			doubleLine l = capsules[i].nl * minScreen;
+			doubleLine l = normalized[i].line * minScreen;
 			screenLines.push_back(l);
 			//screen0s[i][0] = capsules[i].nl.p.x * minScreen;
 			//screen0s[i][1] = capsules[i].nl.p.y * minScreen;
@@ -466,7 +467,7 @@ public:
 		//	drawTriangles(g, i);
 		//	drawTriangles(g, n + i);
 		//}
-		for (int i = 0; i < n; i++) {
+		/*for (int i = 0; i < n; i++) {
 			drawRect(g, i);
 		}
 		for (int i = 0; i < n; i++) {
@@ -477,7 +478,7 @@ public:
 		}
 		for (int i = 0; i < n; i++) {
 			paintLineEndPoints(g, i);
-		}
+		}*/
 	}
 };
 
