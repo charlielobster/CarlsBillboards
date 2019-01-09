@@ -148,6 +148,12 @@
     </Link>
   </ItemDefinitionGroup>
   <ItemGroup>
+    <ClInclude Include="capsule.h" />
+    <ClInclude Include="Carl.h" />
+    <ClInclude Include="doubleLine.h" />
+    <ClInclude Include="doublePoint.h" />
+    <ClInclude Include="doubleRect.h" />
+    <ClInclude Include="doubleTriangle.h" />
     <ClInclude Include="PaintedFigures.h" />
     <ClInclude Include="Resource.h" />
     <ClInclude Include="stdafx.h" />
