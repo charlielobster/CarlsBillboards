@@ -9,7 +9,7 @@ using namespace Gdiplus;
 #pragma comment (lib,"Gdiplus.lib")
 
 #define MAX_LOADSTRING 100
-
+//
 using namespace std;
 
 Carl c;
