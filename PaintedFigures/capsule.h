@@ -52,12 +52,12 @@ public:
 		return *this;
 	}
 
-	inline friend const capsule &operator-(const capsule &c, double d)
+	inline friend capsule operator-(const capsule &c, double d)
 	{
 		return capsule(c.line - d, c.radius);
 	}
 
-	inline friend const capsule &operator/(const capsule &c, double d)
+	inline friend capsule operator/(const capsule &c, double d)
 	{
 		return capsule(c.line / d, c.radius / d);
 	}

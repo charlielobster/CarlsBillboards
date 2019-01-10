@@ -36,7 +36,7 @@ public:
 		return *this;
 	}
 
-	inline friend const doubleRect &operator*(const doubleRect &r, double t)
+	inline friend doubleRect operator*(const doubleRect &r, double t)
 	{
 		return doubleRect(r.a * t, r.b * t, r.c * t, r.d * t);
 	}

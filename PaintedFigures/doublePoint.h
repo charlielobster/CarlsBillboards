@@ -22,7 +22,7 @@ public:
 	double max;
 	doublePoint() {}
 
-	void set()
+	inline void set()
 	{
 		m = y / x;
 		min = min(x, y); 
@@ -55,33 +55,33 @@ public:
 
 	inline const double &operator[](unsigned short i) const { assert(i < 2);  return (i == 0 ? x : y); }
 
-	inline friend const doublePoint &operator-(const doublePoint &q, const doublePoint &p)
+	inline friend const doublePoint operator-(const doublePoint &q, const doublePoint &p)
 	{
 		return doublePoint(q.x - p.x, q.y - p.y);
 	}
 
-	inline friend const doublePoint &operator-(const doublePoint &p, double d)
+	inline friend const doublePoint operator-(const doublePoint &p, double d)
 	{
 		return doublePoint(p.x - d, p.y - d);
 	}
 
-	inline friend const doublePoint &operator/(const doublePoint &p, double d)
+	inline friend const doublePoint operator/(const doublePoint &p, double d)
 	{
 		assert(d != 0);
 		return doublePoint(p.x / d, p.y / d);
 	}
 
-	inline friend const doublePoint &operator*(const doublePoint &p, double d)
+	inline friend const doublePoint operator*(const doublePoint &p, double d)
 	{
 		return doublePoint(p.x * d, p.y * d);
 	}
 
-	inline friend const doublePoint &operator+(const doublePoint &p, const doublePoint &q)
+	inline friend const doublePoint operator+(const doublePoint &p, const doublePoint &q)
 	{
 		return doublePoint(p.x + q.x, p.y + q.y);
 	}
 
-	inline friend const doublePoint &operator+(const doublePoint &p, double d)
+	inline friend const doublePoint operator+(const doublePoint &p, double d)
 	{
 		return doublePoint(p.x + d, p.y + d);
 	}

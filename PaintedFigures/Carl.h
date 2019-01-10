@@ -187,7 +187,7 @@ public:
 	void init()
 	{
 		//srand((unsigned int)time(0));
-		n = 1; // (rand() % MAX_N + 1
+		n = (rand() % MAX_N) + 1;
 		//n += (n % 2);
 
 		for (int i = 0; i < n; i++) {
@@ -294,6 +294,8 @@ public:
 
 	void resize(double minScreen)
 	{
+		screenRects.clear();
+		screenLines.clear();
 		for (int i = 0; i < n; i++) {
 
 			doubleRect r = unitCapsules[i].rect * minScreen;

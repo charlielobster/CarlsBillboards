@@ -14,9 +14,9 @@ public:
 	double max;
 	doubleLine() {}
 
-	void set()
+	inline void set()
 	{
-		pq = doublePoint(q.x - p.x, q.y - p.y);
+		pq = q - p;
 		min = min(p.min, q.min);
 		max = max(p.max, q.max);
 		m = pq.m;
@@ -37,22 +37,22 @@ public:
 
 	inline const doublePoint &operator[](int i) const { return (i == 0 ? p : q); }
 
-	inline friend const doubleLine &operator-(const doubleLine &l, double d)
+	inline friend const doubleLine operator-(const doubleLine &l, double d)
 	{
 		return doubleLine(l.p - d, l.q - d);
 	}
 
-	inline friend const doubleLine &operator*(const doubleLine &l, double d)
+	inline friend const doubleLine operator*(const doubleLine &l, double d)
 	{
 		return doubleLine(l.p * d, l.q * d);
 	}
 
-	inline friend const doubleLine &operator/(const doubleLine &l, double d)
+	inline friend const doubleLine operator/(const doubleLine &l, double d)
 	{
 		return doubleLine(l.p / d, l.q / d);
 	}
 
-	inline friend const doublePoint &intersection(const doubleLine &l1, const doubleLine &l2)
+	inline friend const doublePoint intersection(const doubleLine &l1, const doubleLine &l2)
 	{
 		assert((l1.m - l2.m) != 0.0);
 		double x = (l2.b - l1.b) / (l1.m - l2.m);
