@@ -1,66 +1,54 @@
 #pragma once
 
+#include <assert.h>
 #include "doublePoint.h"
 
 class doubleRect
 {
 public:
-	doublePoint vertices[4];
+	doublePoint a;
+	doublePoint b;
+	doublePoint c;
+	doublePoint d;
+	double min;
+	double max;
 	doubleRect() {}
 
-	doubleRect(const doubleRect &r)
+	inline void set()
 	{
-		vertices[0] = r.vertices[0];
-		vertices[1] = r.vertices[1];
-		vertices[2] = r.vertices[2];
-		vertices[3] = r.vertices[3];
+		min = min(min(min(a.min, b.min), c.min), d.min);
+		max = max(max(max(a.max, b.max), c.max), d.max);
 	}
 
-	doubleRect(const doublePoint &a, const doublePoint &b, const doublePoint &c, const doublePoint &d) {
-		vertices[0] = a;
-		vertices[1] = b;
-		vertices[2] = c;
-		vertices[3] = d;
+	doubleRect(const doubleRect &r) : a(r.a), b(r.b), c(r.c), d(r.d) { set(); }
+
+	doubleRect(const doublePoint &pa, const doublePoint &pb, 
+		const doublePoint &pc, const doublePoint &pd) : a(pa), b(pb), c(pc), d(pd) 
+	{
+		set();
 	}
 
 	inline doubleRect &operator=(const doubleRect &r)
 	{
 		if (this == &r) return *this;
-		vertices[0] = r.vertices[0];
-		vertices[1] = r.vertices[1];
-		vertices[2] = r.vertices[2];
-		vertices[3] = r.vertices[3];
+		a = r.a; b = r.b; c = r.c; d = r.d;
+		set();
 		return *this;
 	}
 
-	inline doubleRect operator*(double d)
+	inline friend const doubleRect &operator*(const doubleRect &r, double t)
 	{
-		return doubleRect(vertices[0] * d, vertices[1] * d, vertices[2] * d, vertices[3] * d);
+		return doubleRect(r.a * t, r.b * t, r.c * t, r.d * t);
 	}
 
-	inline double minValue() const
+	inline const doublePoint &operator[](unsigned short i) const 
 	{
-		return min(min(min(vertices[0].minValue(), 
-			vertices[1].minValue()), 
-			vertices[2].minValue()), 
-			vertices[3].minValue());
+		assert(i < 4);
+		switch (i) {
+			case 0: return a;
+			case 1: return b;
+			case 2: return c;
+			default: return d;
+		}
 	}
-
-	inline double maxValue() const
-	{
-		return max(max(max(vertices[0].maxValue(), 
-			vertices[1].maxValue()), 
-			vertices[2].maxValue()), 
-			vertices[3].maxValue());
-	}
-
-	inline const doubleRect &normalized(double min, double d)
-	{
-		return doubleRect(vertices[0].normalized(min, d), 
-			vertices[1].normalized(min, d), 
-			vertices[2].normalized(min, d), 
-			vertices[3].normalized(min, d));
-	}
-
-	inline doublePoint &operator[](int i) { return vertices[i]; }
 };

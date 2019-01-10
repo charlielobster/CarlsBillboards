@@ -1,5 +1,6 @@
 #pragma once
 
+#include <assert.h>
 #include <math.h>
 
 #define MAX_DOUBLE 1.79769e+308 
@@ -14,62 +15,84 @@ class doublePoint
 public:
 	double x;
 	double y;
-	doublePoint() : x(0.0), y(0.0) {}
-	doublePoint(double d) : x(d), y(d) {}
-	doublePoint(const doublePoint &p) : x(p.x), y(p.y) {}
-	doublePoint(double x, double y) : x(x), y(y) {}
+	double m;
+	double d;
+	double dot;
+	double min;
+	double max;
+	doublePoint() {}
 
-	inline doublePoint &operator=(const doublePoint &p) 
+	void set()
+	{
+		m = y / x;
+		min = min(x, y); 
+		max = max(x, y);
+		dot = x * x + y * y;
+		d = sqrt(dot);
+	}
+
+	doublePoint(double d) : x(d), y(d) 
+	{
+		set();
+	}
+
+	doublePoint(const doublePoint &p) : x(p.x), y(p.y) 
+	{
+		set();
+	}
+
+	doublePoint(double x, double y) : x(x), y(y) 
+	{
+		set();
+	}
+
+	inline const doublePoint &operator=(const doublePoint &p)
 	{ 
 		if (this == &p) return *this; 
-		x = p.x; y = p.y;
+		x = p.x; y = p.y; set();
 		return *this;
 	}
 
-	inline friend doublePoint operator-(const doublePoint &q, const doublePoint &p) 
-	{ 
-		return doublePoint(q.x - p.x, q.y - p.y); 
-	}
+	inline const double &operator[](unsigned short i) const { assert(i < 2);  return (i == 0 ? x : y); }
 
-	inline friend doublePoint operator+(const doublePoint &p, const doublePoint &q) 
-	{ 
-		return doublePoint(p.x + q.x, p.y + q.y); 
-	}
-
-	inline double &operator[](int i) { return (i == 0 ? x : y); }
-
-	inline doublePoint operator*(double d)
+	inline friend const doublePoint &operator-(const doublePoint &q, const doublePoint &p)
 	{
-		return doublePoint(x * d, y * d);
+		return doublePoint(q.x - p.x, q.y - p.y);
 	}
 
-	inline friend double cross(const doublePoint &p, const doublePoint &q) 
-	{ 
-		return (q.y * p.x - q.x * p.y); 
-	}
-
-	inline friend double dot(const doublePoint &p, const doublePoint &q) 
-	{ 
-		return (q.x * p.x + q.y * p.y); 
-	}
-
-	inline double distance() const
+	inline friend const doublePoint &operator-(const doublePoint &p, double d)
 	{
-		return sqrt(dot(*this, *this));
+		return doublePoint(p.x - d, p.y - d);
 	}
 
-	inline double minValue() const
+	inline friend const doublePoint &operator/(const doublePoint &p, double d)
 	{
-		return min(x, y);
+		assert(d != 0);
+		return doublePoint(p.x / d, p.y / d);
 	}
 
-	inline double maxValue() const
+	inline friend const doublePoint &operator*(const doublePoint &p, double d)
 	{
-		return max(x, y);
+		return doublePoint(p.x * d, p.y * d);
 	}
 
-	inline const doublePoint normalized(double min, double d)
+	inline friend const doublePoint &operator+(const doublePoint &p, const doublePoint &q)
 	{
-		return doublePoint((x - min) / d, (y - min) / d);
+		return doublePoint(p.x + q.x, p.y + q.y);
+	}
+
+	inline friend const doublePoint &operator+(const doublePoint &p, double d)
+	{
+		return doublePoint(p.x + d, p.y + d);
+	}
+
+	inline friend double cross(const doublePoint &p, const doublePoint &q)
+	{
+		return (q.y * p.x - q.x * p.y);
+	}
+
+	inline friend double dot(const doublePoint &p, const doublePoint &q)
+	{
+		return (q.x * p.x + q.y * p.y);
 	}
 };

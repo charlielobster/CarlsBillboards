@@ -8,55 +8,55 @@ public:
 	doublePoint p;
 	doublePoint q;
 	doublePoint pq;
+	double m;
+	double b;
+	double min;
+	double max;
 	doubleLine() {}
-	doubleLine(double d) : p(d), q(d), pq(0) {}
-	doubleLine(const doubleLine &l) : p(l.p), q(l.q), pq(l.pq) {}
-	doubleLine(const doublePoint &p, const doublePoint &q) : p(p), q(q), pq(q - p) {}
-	doubleLine(double px, double py, double qx, double qy) : p(px, py), q(qx, qy), pq(q - p) {}
+
+	void set()
+	{
+		pq = doublePoint(q.x - p.x, q.y - p.y);
+		min = min(p.min, q.min);
+		max = max(p.max, q.max);
+		m = pq.m;
+		b = p.y - m * p.x;
+	}
+
+	doubleLine(double d) : p(d), q(d) { set(); }
+	doubleLine(const doubleLine &l) : p(l.p), q(l.q) { set(); }
+	doubleLine(const doublePoint &p, const doublePoint &q) : p(p), q(q) { set(); }
+	doubleLine(double px, double py, double qx, double qy) : p(px, py), q(qx, qy) { set(); }
 
 	inline doubleLine &operator=(const doubleLine &l)
 	{
 		if (this == &l) return *this;
-		p = l.p; q = l.q; pq = l.pq;
+		p = l.p; q = l.q; set();
 		return *this;
 	}
 
-	inline doubleLine operator*(double d)
+	inline const doublePoint &operator[](int i) const { return (i == 0 ? p : q); }
+
+	inline friend const doubleLine &operator-(const doubleLine &l, double d)
 	{
-		return doubleLine(p * d, q * d);
+		return doubleLine(l.p - d, l.q - d);
 	}
 
-	inline doublePoint &operator[](int i) { return (i == 0 ? p : q); }
-
-	inline double m() const
+	inline friend const doubleLine &operator*(const doubleLine &l, double d)
 	{
-		return (pq.y / pq.x);
+		return doubleLine(l.p * d, l.q * d);
 	}
 
-	inline double b() const
+	inline friend const doubleLine &operator/(const doubleLine &l, double d)
 	{
-		return p.y - m() * p.x;
-	}
-
-	inline double minValue() const
-	{
-		return min(p.minValue(), q.minValue());
-	}
-
-	inline double maxValue() const
-	{
-		return max(p.maxValue(), q.maxValue());
-	}
-
-	inline const doubleLine normalized(double min, double d)
-	{
-		return doubleLine(p.normalized(min, d), q.normalized(min, d));
+		return doubleLine(l.p / d, l.q / d);
 	}
 
 	inline friend const doublePoint &intersection(const doubleLine &l1, const doubleLine &l2)
 	{
-		double x = (l2.b() - l1.b()) / (l1.m() - l2.m());
-		double y = l1.m() * x + l1.b();
+		assert((l1.m - l2.m) != 0.0);
+		double x = (l2.b - l1.b) / (l1.m - l2.m);
+		double y = l1.m * x + l1.b; 
 		return doublePoint(x, y);
 	}
 };

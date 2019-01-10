@@ -6,32 +6,31 @@
 class doubleTriangle
 {
 public:
-	doublePoint vertices[3];
+	doublePoint a;
+	doublePoint b;
+	doublePoint c;
 	doubleTriangle() {}
 
-	doubleTriangle(const doubleTriangle &t) 
-	{
-		vertices[0] = t.vertices[0];
-		vertices[1] = t.vertices[1];
-		vertices[2] = t.vertices[2];
-	}
+	doubleTriangle(const doubleTriangle &t) : a(t.a), b(t.b), c(t.c) {}
 
-	doubleTriangle(const doublePoint &a, const doublePoint &b, const doublePoint &c) {
-		vertices[0] = a;
-		vertices[1] = b;
-		vertices[2] = c;
-	}
+	doubleTriangle(const doublePoint &ta, const doublePoint &tb, const doublePoint &tc) : a(ta), b(tb), c(tc) {}
 
 	inline doubleTriangle &operator=(const doubleTriangle &l)
 	{
 		if (this == &l) return *this;
-		vertices[0] = l.vertices[0]; 
-		vertices[1] = l.vertices[1]; 
-		vertices[2] = l.vertices[2];
+		a = l.a; b = l.b; c = l.c;
 		return *this;
 	}
 
-	inline doublePoint &operator[](int i) { return vertices[i]; }
+	inline const doublePoint &operator[](unsigned short i) const 
+	{
+		assert(i < 3); 
+		switch (i) { 
+			case 0: return a; 
+			case 1: return b; 
+			default: return c;
+		}
+	}
 };
 
 

@@ -11,6 +11,7 @@
 #include "doublePoint.h"
 #include "doubleLine.h"
 #include "doubleTriangle.h"
+#include "doubleRect.h"
 #include "capsule.h"
 
 using namespace Gdiplus;
@@ -29,20 +30,7 @@ class Carl
 {
 public:
 	capsule capsules[200];
-	capsule normalized[200];
-	//double l0s[200][2];
-	//double l1s[200][2];
-	//double r0s[200][2];
-	//double r1s[200][2];
-	//double r2s[200][2];
-	//double r3s[200][2];
-	//double screen0s[200][2];
-	//double screen1s[200][2];
-	//double screenr0s[200][2];
-	//double screenr1s[200][2];
-	//double screenr2s[200][2];
-	//double screenr3s[200][2];
-//	doubleTriangle triangles[400];
+	capsule unitCapsules[200];
 
 	vector<doubleTriangle> triangles;
 	vector<doubleTriangle> tiles;
@@ -54,8 +42,6 @@ public:
 	int tileCount = 0;
 
 	unsigned short n;
-	//double min0 = MAX_DOUBLE, min1 = MAX_DOUBLE, minr00 = MAX_DOUBLE, minr01 = MAX_DOUBLE, minr10 = MAX_DOUBLE, minr11 = MAX_DOUBLE, minr20 = MAX_DOUBLE, minr21 = MAX_DOUBLE, minr30 = MAX_DOUBLE, minr31 = MAX_DOUBLE;
-	//double max0 = MIN_DOUBLE, max1 = MIN_DOUBLE, maxr00 = MIN_DOUBLE, maxr01 = MIN_DOUBLE, maxr10 = MIN_DOUBLE, maxr11 = MIN_DOUBLE, maxr20 = MIN_DOUBLE, maxr21 = MIN_DOUBLE, maxr30 = MIN_DOUBLE, maxr31 = MIN_DOUBLE;
 	double min = MAX_DOUBLE, max = MIN_DOUBLE, d = 0;
 
 	double crossProduct(const doublePoint &p, const doublePoint &q)
@@ -63,7 +49,7 @@ public:
 		return (q.y * p.x - q.x * p.y);
 	}
 
-	bool sameSide(doublePoint &p1, doublePoint &p2, const doublePoint &a, doublePoint &b)
+	bool sameSide(const doublePoint &p1, const doublePoint &p2, const doublePoint &a, const doublePoint &b)
 	{
 		double c = cross((b - a), (p1 - a));
 		double cp1 = crossProduct(b - a, p1 - a);
@@ -78,9 +64,9 @@ public:
 
 	bool pointInTriangle(doublePoint &p, doubleTriangle &t)
 	{
-		if (sameSide(p, t.vertices[0], t.vertices[1], t.vertices[2]) &&
-			sameSide(p, t.vertices[1], t.vertices[0], t.vertices[2]) &&
-			sameSide(p, t.vertices[2], t.vertices[0], t.vertices[1])) {
+		if (sameSide(p, t[0], t[1], t[2]) &&
+			sameSide(p, t[1], t[0], t[2]) &&
+			sameSide(p, t[2], t[0], t[1])) {
 			return true;
 		}
 		else {
@@ -94,10 +80,6 @@ public:
 		double m = d.y / d.x;
 		double b = m * p.x - p.y;
 	}
-
-
-
-
 
 	// Given three colinear points p, q, r, the function checks if 
 	// point q lies on line segment 'pr' 
@@ -182,18 +164,18 @@ public:
 		bool result = false;
 		unsigned short k = 0;
 		//while (!result && k < 3) {
-		//	doublePoint p = triangles[i].vertices[k];
+		//	doublePoint p = triangles[i][k];
 		//	result = pointInTriangle(p, tiles[j]);
 		//	k++;
 		//}
 		//k = 0;
 		while (!result && k < 3) {
-			doublePoint p1 = triangles[i].vertices[k];
-			doublePoint q1 = triangles[i].vertices[(k + 1) % 3];
+			doublePoint p1 = triangles[i][k];
+			doublePoint q1 = triangles[i][(k + 1) % 3];
 			unsigned short l = 0;
 			while (!result && l < 3) {
-				doublePoint p2 = tiles[j].vertices[l];
-				doublePoint q2 = tiles[j].vertices[(l + 1) % 3];
+				doublePoint p2 = tiles[j][l];
+				doublePoint q2 = tiles[j][(l + 1) % 3];
 				result = doIntersect(p1, q1, p2, q2);
 				l++;
 			}
@@ -206,7 +188,7 @@ public:
 	{
 		//srand((unsigned int)time(0));
 		n = 1; // (rand() % MAX_N + 1
-		n += (n % 2);
+		//n += (n % 2);
 
 		for (int i = 0; i < n; i++) {
 
@@ -217,8 +199,7 @@ public:
 				rand() % MAX_DIMENSION + 1);
 			double r = rand() % MAX_RADIUS + 1;
 
-			capsule c(l, r);
-			capsules[i] = c;
+			capsules[i] = capsule(l, r);
 
 			//doublePoint pq = l.pq;
 			//double dy = pq.y;
@@ -237,8 +218,8 @@ public:
 		
 		for (int i = 0; i < n; i++) {
 
-			if (capsules[i].minValue() < min) { min = capsules[i].minValue(); }
-			if (capsules[i].maxValue() > max) { max = capsules[i].maxValue(); }
+			if (capsules[i].min < min) { min = capsules[i].min; }
+			if (capsules[i].max > max) { max = capsules[i].max; }
 			
 			//if (p0s[i][0] < min0) { min0 = p0s[i][0]; }
 			//if (p0s[i][1] < min1) { min1 = p0s[i][1]; }
@@ -273,7 +254,7 @@ public:
 
 		for (int i = 0; i < n; i++) {
 
-			normalized[i] = capsules[i].normalized(min, d);
+			unitCapsules[i] = (capsules[i] - min) / d;
 
 			//l0s[i][0] = (p0s[i][0] - min) / d;
 			//l0s[i][1] = (p0s[i][1] - min) / d;
@@ -289,31 +270,12 @@ public:
 			//r3s[i][0] = (r3s[i][0] - min) / d;
 			//r3s[i][1] = (r3s[i][1] - min) / d;
 
-			doubleRect r = normalized[i].rect;
-			doubleTriangle t1(r.vertices[0], r.vertices[1], r.vertices[2]);
+			doubleRect r = unitCapsules[i].rect;
+			doubleTriangle t1(r.a, r.b, r.c);
 			triangles.push_back(t1);
-			doubleTriangle t2(r.vertices[1], r.vertices[2], r.vertices[3]);
+			doubleTriangle t2(r.b, r.c, r.d);
 			triangles.push_back(t2);
-
-			//triangles[i].vertices[0].x = r0s[i][0];
-			//triangles[i].vertices[0].y = r0s[i][1];
-			//triangles[i].vertices[1].x = r1s[i][0];
-			//triangles[i].vertices[1].y = r1s[i][1];
-			//triangles[i].vertices[2].x = r2s[i][0];
-			//triangles[i].vertices[2].y = r2s[i][1];
-
-			//triangles[n + i].vertices[0].x = r1s[i][0];
-			//triangles[n + i].vertices[0].y = r1s[i][1];
-			//triangles[n + i].vertices[1].x = r2s[i][0];
-			//triangles[n + i].vertices[1].y = r2s[i][1];
-			//triangles[n + i].vertices[2].x = r3s[i][0];
-			//triangles[n + i].vertices[2].y = r3s[i][1];
-
 		}
-
-		tiles.push_back(triangles[0]);
-		tiles.push_back(triangles[1]);
-		tileCount = 2;
 
 		for (int i = 1; i < 2 * n; i++) {
 			bool result = false;
@@ -334,41 +296,28 @@ public:
 	{
 		for (int i = 0; i < n; i++) {
 
-			doubleRect r = normalized[i].rect * minScreen;
+			doubleRect r = unitCapsules[i].rect * minScreen;
 			screenRects.push_back(r);
-			doubleLine l = normalized[i].line * minScreen;
+			doubleLine l = unitCapsules[i].line * minScreen;
 			screenLines.push_back(l);
-			//screen0s[i][0] = capsules[i].nl.p.x * minScreen;
-			//screen0s[i][1] = capsules[i].nl.p.y * minScreen;
-			//screen1s[i][0] = capsules[i].nl.q.x * minScreen;
-			//screen1s[i][1] = capsules[i].nl.q.y * minScreen;
-
-			//screenr0s[i][0] = capsules[i].nr.vertices[0].x * minScreen;
-			//screenr0s[i][1] = capsules[i].nr.vertices[0].y * minScreen;
-			//screenr1s[i][0] = capsules[i].nr.vertices[1].x * minScreen;
-			//screenr1s[i][1] = capsules[i].nr.vertices[1].y * minScreen;
-			//screenr2s[i][0] = capsules[i].nr.vertices[2].x * minScreen;
-			//screenr2s[i][1] = capsules[i].nr.vertices[2].y * minScreen;
-			//screenr3s[i][0] = capsules[i].nr.vertices[3].x * minScreen;
-			//screenr3s[i][1] = capsules[i].nr.vertices[3].y * minScreen;
 		}
 
 		//for (unsigned short i = 0; i < tileCount; i++) {
-		//	screenTriangles[i].vertices[0].x = triangles[i].vertices[0].x * minScreen;
-		//	screenTriangles[i].vertices[0].y = triangles[i].vertices[0].y * minScreen;
-		//	screenTriangles[i].vertices[1].x = triangles[i].vertices[1].x * minScreen;
-		//	screenTriangles[i].vertices[1].y = triangles[i].vertices[1].y * minScreen;
-		//	screenTriangles[i].vertices[2].x = triangles[i].vertices[2].x * minScreen;
-		//	screenTriangles[i].vertices[2].y = triangles[i].vertices[2].y * minScreen;
+		//	screenTriangles[i][0].x = triangles[i][0].x * minScreen;
+		//	screenTriangles[i][0].y = triangles[i][0].y * minScreen;
+		//	screenTriangles[i][1].x = triangles[i][1].x * minScreen;
+		//	screenTriangles[i][1].y = triangles[i][1].y * minScreen;
+		//	screenTriangles[i][2].x = triangles[i][2].x * minScreen;
+		//	screenTriangles[i][2].y = triangles[i][2].y * minScreen;
 		//}
 
 		//for (int i = 0; i < tileCount; i++) {
-		//	screenTiles[i].vertices[0].x = tiles[i].vertices[0].x * minScreen;
-		//	screenTiles[i].vertices[0].y = tiles[i].vertices[0].y * minScreen;
-		//	screenTiles[i].vertices[1].x = tiles[i].vertices[1].x * minScreen;
-		//	screenTiles[i].vertices[1].y = tiles[i].vertices[1].y * minScreen;
-		//	screenTiles[i].vertices[2].x = tiles[i].vertices[2].x * minScreen;
-		//	screenTiles[i].vertices[2].y = tiles[i].vertices[2].y * minScreen;
+		//	screenTiles[i][0].x = tiles[i][0].x * minScreen;
+		//	screenTiles[i][0].y = tiles[i][0].y * minScreen;
+		//	screenTiles[i][1].x = tiles[i][1].x * minScreen;
+		//	screenTiles[i][1].y = tiles[i][1].y * minScreen;
+		//	screenTiles[i][2].x = tiles[i][2].x * minScreen;
+		//	screenTiles[i][2].y = tiles[i][2].y * minScreen;
 		//}
 	}
 
@@ -408,9 +357,9 @@ public:
 	{
 		Pen p(Color(255, 0, 0));
 		GraphicsPath path;
-		Point a(screenTiles[i].vertices[0].x, screenTiles[i].vertices[0].y);
-		Point b(screenTiles[i].vertices[1].x, screenTiles[i].vertices[1].y);
-		Point c(screenTiles[i].vertices[2].x, screenTiles[i].vertices[2].y);
+		Point a(screenTiles[i][0].x, screenTiles[i][0].y);
+		Point b(screenTiles[i][1].x, screenTiles[i][1].y);
+		Point c(screenTiles[i][2].x, screenTiles[i][2].y);
 		path.AddLine(a, b);
 		path.AddLine(b, c);
 		path.AddLine(c, a);
@@ -421,9 +370,9 @@ public:
 	{
 		Pen p(Color(255, 0, 0));
 		GraphicsPath path;
-		Point a(screenTriangles[i].vertices[0].x, screenTriangles[i].vertices[0].y);
-		Point b(screenTriangles[i].vertices[1].x, screenTriangles[i].vertices[1].y);
-		Point c(screenTriangles[i].vertices[2].x, screenTriangles[i].vertices[2].y);
+		Point a(screenTriangles[i][0].x, screenTriangles[i][0].y);
+		Point b(screenTriangles[i][1].x, screenTriangles[i][1].y);
+		Point c(screenTriangles[i][2].x, screenTriangles[i][2].y);
 		path.AddLine(a, b);
 		path.AddLine(b, c);
 		path.AddLine(c, a);
@@ -441,18 +390,17 @@ public:
 
 	void paintLine(Graphics &g, int i)
 	{
-		// Create pen.
-		Pen redPen(Color(255, 255, 255), 1);
+		Pen pen(Color(255, 0, 255), 1);
 		Point p0(screenLines[i][0][0], screenLines[i][0][1]);
 		Point p1(screenLines[i][1][0], screenLines[i][1][1]);
-		g.DrawLine(&redPen, p0, p1);
+		g.DrawLine(&pen, p0, p1);
 	}
 
 	void paintLineEndPoints(Graphics &g, int i)
 	{
-		Pen blackPen(Color(0, 0, 0), 6);
-		g.DrawEllipse(&blackPen, screenLines[i][0][0] - 3, screenLines[i][0][1] - 3, 6, 6);
-		g.DrawEllipse(&blackPen, screenLines[i][1][0] - 3, screenLines[i][1][1] - 3, 6, 6);
+		Pen p(Color(0, 0, 0), 6);
+		g.DrawEllipse(&p, screenLines[i][0][0] - 3, screenLines[i][0][1] - 3, 6, 6);
+		g.DrawEllipse(&p, screenLines[i][1][0] - 3, screenLines[i][1][1] - 3, 6, 6);
 	}
 
 	void paint(Graphics &g)
@@ -467,9 +415,9 @@ public:
 		//	drawTriangles(g, i);
 		//	drawTriangles(g, n + i);
 		//}
-		/*for (int i = 0; i < n; i++) {
-			drawRect(g, i);
-		}
+		//for (int i = 0; i < n; i++) {
+		//	drawRect(g, i);
+		//}
 		for (int i = 0; i < n; i++) {
 			drawRectEndPoints(g, i);
 		}
@@ -478,7 +426,7 @@ public:
 		}
 		for (int i = 0; i < n; i++) {
 			paintLineEndPoints(g, i);
-		}*/
+		}
 	}
 };
 

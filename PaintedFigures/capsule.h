@@ -1,5 +1,6 @@
 #pragma once
 
+#include "doublePoint.h"
 #include "doubleLine.h"
 #include "doubleTriangle.h"
 #include "doubleRect.h"
@@ -8,9 +9,36 @@ class capsule
 {
 public:
 	doubleLine line;
-	double radius;
 	doubleRect rect;
+	double radius;
+	double min;
+	double max;
 	capsule() {}
+
+	inline void init()
+	{
+		double dy = line.pq.y;
+		double dx = line.pq.x;
+		double d = line.pq.d;
+		double s = radius * dx / d;
+		double t = radius * dy / d;
+
+		rect.a.x = line.p.x - s;
+		rect.a.y = line.p.y - t;
+		rect.b.x = line.p.x + s;
+		rect.b.y = line.p.y + t;
+		rect.c.x = line.q.x - s;
+		rect.c.y = line.q.y - t;
+		rect.d.x = line.q.x + s;
+		rect.d.y = line.q.y + t;
+
+		rect.a.set(); rect.b.set(); rect.c.set(); rect.d.set();
+		rect.set();
+
+		min = min(line.min, rect.min);
+		max = max(line.max, rect.max);
+	}
+
 	capsule(const capsule &c) : line(c.line), radius(c.radius) { init(); }
 	capsule(const doubleLine &l, double r) : line(l), radius(r) { init(); }
 	capsule(const doublePoint &p, const doublePoint &q, double radius) : line(p, q), radius(radius) { init(); }
@@ -20,43 +48,17 @@ public:
 		if (this == &c) return *this;
 		line = c.line;
 		radius = c.radius;
-		rect = c.rect;
+		init();
 		return *this;
 	}
 
-	inline double minValue() const
+	inline friend const capsule &operator-(const capsule &c, double d)
 	{
-		return min(line.minValue(), rect.minValue());
+		return capsule(c.line - d, c.radius);
 	}
 
-	inline double maxValue() const
+	inline friend const capsule &operator/(const capsule &c, double d)
 	{
-		return min(line.maxValue(), rect.maxValue());
-	}
-
-	inline capsule normalized(double min, double d)
-	{
-		capsule c;
-		c.line = line.normalized(min, d);
-		c.rect = rect.normalized(min, d);
-		c.radius = radius / d;
-		return c;
-	}
-
-private:
-	inline void init()
-	{
-		double dy = line.pq.y;
-		double dx = line.pq.x;
-		double abs = line.pq.distance();
-
-		rect.vertices[0].x = line.p.x - radius * dx / abs;
-		rect.vertices[0].y = line.p.y - radius * dy / abs;
-		rect.vertices[1].x = line.p.x + radius * dx / abs;
-		rect.vertices[1].y = line.p.y + radius * dy / abs;
-		rect.vertices[2].x = line.q.x - radius * dx / abs;
-		rect.vertices[2].y = line.q.y - radius * dy / abs;
-		rect.vertices[3].x = line.q.x + radius * dx / abs;
-		rect.vertices[3].y = line.q.y + radius * dy / abs;
+		return capsule(c.line / d, c.radius / d);
 	}
 };
