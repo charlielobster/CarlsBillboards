@@ -15,14 +15,14 @@ public:
 
 	doubleTriangle(const doublePoint &ta, const doublePoint &tb, const doublePoint &tc) : a(ta), b(tb), c(tc) {}
 
-	inline doubleTriangle &operator=(const doubleTriangle &l)
+	doubleTriangle &operator=(const doubleTriangle &l)
 	{
 		if (this == &l) return *this;
 		a = l.a; b = l.b; c = l.c;
 		return *this;
 	}
 
-	inline const doublePoint &operator[](unsigned short i) const 
+	const doublePoint &operator[](unsigned short i) const 
 	{
 		assert(i < 3); 
 		switch (i) { 

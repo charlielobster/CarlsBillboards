@@ -22,7 +22,7 @@ public:
 	double max;
 	doublePoint() {}
 
-	inline void set()
+	void set()
 	{
 		m = y / x;
 		min = min(x, y); 
@@ -46,52 +46,52 @@ public:
 		set();
 	}
 
-	inline const doublePoint &operator=(const doublePoint &p)
+	const doublePoint &operator=(const doublePoint &p)
 	{ 
 		if (this == &p) return *this; 
 		x = p.x; y = p.y; set();
 		return *this;
 	}
 
-	inline const double &operator[](unsigned short i) const { assert(i < 2);  return (i == 0 ? x : y); }
+	const double &operator[](unsigned short i) const { assert(i < 2);  return (i == 0 ? x : y); }
 
-	inline friend const doublePoint operator-(const doublePoint &q, const doublePoint &p)
+	friend const doublePoint operator-(const doublePoint &q, const doublePoint &p)
 	{
 		return doublePoint(q.x - p.x, q.y - p.y);
 	}
 
-	inline friend const doublePoint operator-(const doublePoint &p, double d)
+	friend const doublePoint operator-(const doublePoint &p, double d)
 	{
 		return doublePoint(p.x - d, p.y - d);
 	}
 
-	inline friend const doublePoint operator/(const doublePoint &p, double d)
+	friend const doublePoint operator/(const doublePoint &p, double d)
 	{
 		assert(d != 0);
 		return doublePoint(p.x / d, p.y / d);
 	}
 
-	inline friend const doublePoint operator*(const doublePoint &p, double d)
+	friend const doublePoint operator*(const doublePoint &p, double d)
 	{
 		return doublePoint(p.x * d, p.y * d);
 	}
 
-	inline friend const doublePoint operator+(const doublePoint &p, const doublePoint &q)
+	friend const doublePoint operator+(const doublePoint &p, const doublePoint &q)
 	{
 		return doublePoint(p.x + q.x, p.y + q.y);
 	}
 
-	inline friend const doublePoint operator+(const doublePoint &p, double d)
+	friend const doublePoint operator+(const doublePoint &p, double d)
 	{
 		return doublePoint(p.x + d, p.y + d);
 	}
 
-	inline friend double cross(const doublePoint &p, const doublePoint &q)
+	friend double cross(const doublePoint &p, const doublePoint &q)
 	{
 		return (q.y * p.x - q.x * p.y);
 	}
 
-	inline friend double dot(const doublePoint &p, const doublePoint &q)
+	friend double dot(const doublePoint &p, const doublePoint &q)
 	{
 		return (q.x * p.x + q.y * p.y);
 	}

@@ -14,7 +14,7 @@ public:
 	double max;
 	doubleLine() {}
 
-	inline void set()
+	void set()
 	{
 		pq = q - p;
 		min = min(p.min, q.min);
@@ -28,31 +28,31 @@ public:
 	doubleLine(const doublePoint &p, const doublePoint &q) : p(p), q(q) { set(); }
 	doubleLine(double px, double py, double qx, double qy) : p(px, py), q(qx, qy) { set(); }
 
-	inline doubleLine &operator=(const doubleLine &l)
+	doubleLine &operator=(const doubleLine &l)
 	{
 		if (this == &l) return *this;
 		p = l.p; q = l.q; set();
 		return *this;
 	}
 
-	inline const doublePoint &operator[](int i) const { return (i == 0 ? p : q); }
+	const doublePoint &operator[](int i) const { return (i == 0 ? p : q); }
 
-	inline friend const doubleLine operator-(const doubleLine &l, double d)
+	friend const doubleLine operator-(const doubleLine &l, double d)
 	{
 		return doubleLine(l.p - d, l.q - d);
 	}
 
-	inline friend const doubleLine operator*(const doubleLine &l, double d)
+	friend const doubleLine operator*(const doubleLine &l, double d)
 	{
 		return doubleLine(l.p * d, l.q * d);
 	}
 
-	inline friend const doubleLine operator/(const doubleLine &l, double d)
+	friend const doubleLine operator/(const doubleLine &l, double d)
 	{
 		return doubleLine(l.p / d, l.q / d);
 	}
 
-	inline friend const doublePoint intersection(const doubleLine &l1, const doubleLine &l2)
+	friend const doublePoint intersection(const doubleLine &l1, const doubleLine &l2)
 	{
 		assert((l1.m - l2.m) != 0.0);
 		double x = (l2.b - l1.b) / (l1.m - l2.m);

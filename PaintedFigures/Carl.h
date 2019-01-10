@@ -17,6 +17,54 @@
 using namespace Gdiplus;
 #pragma comment (lib,"Gdiplus.lib")
 
+/*
+Carl's Algorithm:
+
+Carl collects all the capsules
+Carl first breaks each capsule into two triangles making up a rect of size radius x line.distance, 
+and two semi-circles on either ends of the rect
+
+Carl handles triangles first:
+
+	Carl puts all the triangles making up all the capsules into his "bag"
+	he also makes a new empty collection of triangles, the "fragments" that have already been placed into the billboard
+	the bag can have many duplicates of what is in fragments,  
+	but every triangle in fragments is unique in that no 2 triangles in fragments share any area
+	but triangles in fragments may share vertices or have co-linear sides
+	
+	while Carl finds a triangle b in his bag
+
+		while Carl finds a triangle f in fragments
+			
+			Carl checks to see if b is completely enclosed by f
+				if b is completely surrounded by f, Carl throws b away
+				Carl breaks out and gets another b from the bag
+				
+			Carl checks to see if f is completely enclosed by b
+				if f is completely surrounded by b, then Carl breaks up b in the following way:
+				create 3 vertices at b's midpoints and along with b and f's vertices, break up b into 10 triangles 
+				Carl puts the 9 triangles back into his bag and throws out the left-over copy of f 
+				Carl breaks out and gets another b from the bag
+
+			Carl checks to see if f and b completely miss one another
+				if f and b completely miss each other, Carl gets another f from fragments
+			
+			Carl checks to see if b intersects f, the last possibility
+				if f and b intersect, and since b and f can share vertices and edges, 
+				their edges must either intersect at 2 or 4 points
+				if their edges intersect at 4 points, then Carls makes two pairs of cuts into b
+				if only at 2 points, Carl just makes one cut into b
+				,	Carl then tosses out the piece of b that overlapped with f
+					This leaves Carl with triangles, quadrilaterals or a 5-sided dimpled shape -
+					in case of the 4 or 5-sided shapes, Carl further breaks those into triangles
+					Carl throws all the triangles back into the bag
+				
+		if Carl finishes checking every f in fragments and he is still holding b, he adds b to fragments
+
+	if there are no triangles left in the bag, continue to circles	
+
+*/
+
 using namespace std;
 
 struct intTriangle
@@ -188,7 +236,6 @@ public:
 	{
 		//srand((unsigned int)time(0));
 		n = (rand() % MAX_N) + 1;
-		//n += (n % 2);
 
 		for (int i = 0; i < n; i++) {
 

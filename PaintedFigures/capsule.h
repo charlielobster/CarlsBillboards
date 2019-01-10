@@ -15,7 +15,7 @@ public:
 	double max;
 	capsule() {}
 
-	inline void init()
+	void init()
 	{
 		double dy = line.pq.y;
 		double dx = line.pq.x;
@@ -43,7 +43,7 @@ public:
 	capsule(const doubleLine &l, double r) : line(l), radius(r) { init(); }
 	capsule(const doublePoint &p, const doublePoint &q, double radius) : line(p, q), radius(radius) { init(); }
 
-	inline capsule &operator=(const capsule &c)
+	capsule &operator=(const capsule &c)
 	{
 		if (this == &c) return *this;
 		line = c.line;
@@ -52,12 +52,12 @@ public:
 		return *this;
 	}
 
-	inline friend capsule operator-(const capsule &c, double d)
+	friend capsule operator-(const capsule &c, double d)
 	{
 		return capsule(c.line - d, c.radius);
 	}
 
-	inline friend capsule operator/(const capsule &c, double d)
+	friend capsule operator/(const capsule &c, double d)
 	{
 		return capsule(c.line / d, c.radius / d);
 	}

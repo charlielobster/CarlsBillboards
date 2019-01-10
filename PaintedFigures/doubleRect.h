@@ -14,7 +14,7 @@ public:
 	double max;
 	doubleRect() {}
 
-	inline void set()
+	void set()
 	{
 		min = min(min(min(a.min, b.min), c.min), d.min);
 		max = max(max(max(a.max, b.max), c.max), d.max);
@@ -28,7 +28,7 @@ public:
 		set();
 	}
 
-	inline doubleRect &operator=(const doubleRect &r)
+	doubleRect &operator=(const doubleRect &r)
 	{
 		if (this == &r) return *this;
 		a = r.a; b = r.b; c = r.c; d = r.d;
@@ -36,12 +36,12 @@ public:
 		return *this;
 	}
 
-	inline friend doubleRect operator*(const doubleRect &r, double t)
+	friend doubleRect operator*(const doubleRect &r, double t)
 	{
 		return doubleRect(r.a * t, r.b * t, r.c * t, r.d * t);
 	}
 
-	inline const doublePoint &operator[](unsigned short i) const 
+	const doublePoint &operator[](unsigned short i) const 
 	{
 		assert(i < 4);
 		switch (i) {
