@@ -7,6 +7,7 @@
 #include <stdlib.h>
 #include <time.h> 
 #include <vector>
+#include <list>
 
 #include "doublePoint.h"
 #include "doubleLine.h"
@@ -22,9 +23,9 @@ using namespace Gdiplus;
 #define MAX_N 49
 
 /*
-Carl's Algorithm:
+Carl's Billboards Algorithm:
 
-Carl collects all the capsules
+Carl collects all the capsules he wants to use for this billboard
 Carl first breaks each capsule into two triangles making up a rect of size radius x line.distance, 
 and two semi-circles on either ends of the rect
 
@@ -74,29 +75,23 @@ Carl handles triangles first:
 
 using namespace std;
 
-struct intTriangle
-{
-	Point a;
-	Point b;
-	Point c;
-};
-
 class Carl
 {
 public:
 	capsule capsules[200];
 	capsule unitCapsules[200];
 
-	vector<doubleTriangle> bag;			// all the triangles Carl wants to paint
+	list<doubleTriangle> bag;			// all the triangles Carl wants to paint
 	vector<doubleTriangle> fragments;	// the triangle fragments comprising the colored regions of Carl's billboard
 
+	list<doubleTriangle> unitBag;
+	vector<doubleTriangle> unitFragments;
 
 	vector<doubleLine> screenLines;
 	vector<doubleRect> screenRects;
-	vector<doubleTriangle> unitBag;
-	vector<doubleTriangle> screenBag;
-	vector<doubleTriangle> screenTiles;
-	int tileCount = 0;
+	
+	list<doubleTriangle> screenBag;
+	vector<doubleTriangle> screenFragments;
 
 	unsigned short n;
 	double min = MAX_DOUBLE, max = MIN_DOUBLE, d = 0;
@@ -216,12 +211,65 @@ public:
 	//	return result;
 	//}
 
+	void fillFragments()
+	{
+		//	Carl handles triangles first:
+		//	Carl puts all the triangles making up all the capsules into his "bag"
+		//	he also makes a new empty collection of triangles, the "fragments" that have already been placed into the billboard
+		//	the bag can have many duplicates of what is in fragments,
+		//	but every triangle in fragments is unique in that no 2 triangles in fragments share any area
+		//	but triangles in fragments may share vertices or have co-linear sides
+
+		//	while Carl finds a triangle b in his bag
+		list<doubleTriangle>::iterator b = bag.begin();
+		list<doubleTriangle>::iterator t;
+		while (b != bag.end()) {
+
+			//		while Carl finds a triangle f in fragments
+
+
+			//		Carl checks to see if b is completely enclosed by f
+			//			if b is completely surrounded by f, Carl throws b away
+			//			Carl breaks out and gets another b from the bag
+
+			//		Carl checks to see if f is completely enclosed by b
+			//			if f is completely surrounded by b, then Carl breaks up b in the following way:
+			//			create 3 vertices at b's midpoints and along with b and f's vertices, break up b into 10 triangles
+			//			Carl puts the 9 triangles back into his bag and throws out the left-over copy of f
+			//			Carl breaks out and gets another b from the bag
+
+			//		Carl checks to see if f and b completely miss one another
+			//			if f and b completely miss each other, Carl breaks out and gets another f from fragments
+
+			//		Carl checks to see if b intersects f, the last possibility
+			//			if f and b intersect, and since b and f can share vertices and edges,
+			//			their edges must either intersect at 2 or 4 points
+			//			if only at 2 points, Carl makes one cut into b at those points
+			//			if their edges intersect at 4 points, then Carls makes two pairs of cuts into b,
+			//				Carl then tosses out the piece of b that overlapped with f
+			//				This leaves Carl with triangles, quadrilaterals, or a 5 or 6-sided dimpled shape -
+			//				in case of the 4 or more sided shapes, Carl further breaks those into triangles,
+			//					using special tricks he has figured out for each class of shape
+			//				Carl then throws all the triangles he created back into the bag
+			//				then Carl breaks out and gets a new b from his bag
+
+			//	if Carl finishes checking every f in fragments and he is still holding b,
+			//		Carl adds b to fragments and gets a new b from his bag
+
+			++b;
+		}
+
+		//if there are no triangles left in the bag, continue to circles...
+	}
+
 	void init()
 	{
 		//srand((unsigned int)time(0));
 		n = 3; // (rand() % MAX_N) + 1;
 
 		for (int i = 0; i < n; i++) {
+
+			// Carl collects a capsule
 			capsules[i] = capsule(
 				doubleLine(
 					rand() % MAX_DIMENSION + 1,
@@ -229,14 +277,25 @@ public:
 					rand() % MAX_DIMENSION + 1,
 					rand() % MAX_DIMENSION + 1),
 				rand() % MAX_RADIUS + 10);
+
+			// Carl also collects the capsule's bounds
 			if (capsules[i].min < min) { min = capsules[i].min; }
 			if (capsules[i].max > max) { max = capsules[i].max; }
+
+			// Carl adds the capsule's triangles to his bag
 			doubleRect r = capsules[i].rect;
 			doubleTriangle t1(r.a, r.b, r.c);
 			doubleTriangle t2(r.b, r.c, r.d);
 			bag.push_back(t1);
 			bag.push_back(t2);
 		}
+
+		// Carl has filled his bag of triangles
+		// he's ready to sort the contents of his bag into billboard fragments
+		fillFragments();
+
+		// find the overall bounds of the set 
+		// use the results to scale Carl's objects to the window
 		min -= MAX_RADIUS; max += MAX_RADIUS;
 		d = max - min;
 
@@ -244,9 +303,10 @@ public:
 			unitCapsules[i] = (capsules[i] - min) / d;
 		}
 
-		int s = bag.size();
-		for (int i = 0; i < s; i++) {
-			unitBag.push_back((bag[i] - min) / d);
+		list<doubleTriangle>::iterator b = bag.begin();
+		while (b != bag.end()) {
+			unitBag.push_back((*b - min) / d);
+			++b;
 		}
 
 		//for (int i = 1; i < 2 * n; i++) {
@@ -269,6 +329,8 @@ public:
 		screenRects.clear();
 		screenLines.clear();
 		screenBag.clear();
+		screenFragments.clear();
+
 		for (int i = 0; i < n; i++) {
 			doubleRect r = unitCapsules[i].rect * minScreen;
 			screenRects.push_back(r);
@@ -276,11 +338,17 @@ public:
 			screenLines.push_back(l);
 		}
 
-		int s = unitBag.size();
-		for (int i = 0; i < s; i++) {
-			doubleTriangle t = unitBag[i] * minScreen;
-			screenBag.push_back(t);
+		list<doubleTriangle>::iterator u = unitBag.begin();
+		while (u != unitBag.end()) {
+			screenBag.push_back(*u * minScreen);
+			++u;
 		}
+
+		//int v = unitFragments.size();
+		//for (int i = 0; i < v; i++) {
+		//	doubleTriangle t = unitFragments[i] * minScreen;
+		//	screenFragments.push_back(t);
+		//}
 
 		//for (unsigned short i = 0; i < tileCount; i++) {
 		//	screenTriangles[i][0].x = triangles[i][0].x * minScreen;
@@ -300,112 +368,122 @@ public:
 		//}
 	}
 
-	void fillRect(Graphics &g, int i)
+	void fillRects(Graphics &g)
 	{
-		Point r0(screenRects[i][0][0], screenRects[i][0][1]);
-		Point r1(screenRects[i][1][0], screenRects[i][1][1]);
-		Point r2(screenRects[i][2][0], screenRects[i][2][1]);
-		Point r3(screenRects[i][3][0], screenRects[i][3][1]);
-
-		SolidBrush b(Color(100, 140, 255));
-		GraphicsPath path;
-		path.AddLine(r0, r1);
-		path.AddLine(r1, r3);
-		path.AddLine(r3, r2);
-		path.AddLine(r2, r0);
-		g.FillPath(&b, &path);
+		doubleRect r;
+		for (int i = 0; i < n; i++) {
+			r = screenRects[i];
+			Point a(r.a.x, r.a.y);
+			Point b(r.b.x, r.b.y);
+			Point c(r.c.x, r.c.y);
+			Point d(r.d.x, r.d.y);
+			SolidBrush brush(Color(100, 140, 255));
+			GraphicsPath path;
+			path.AddLine(a, b);
+			path.AddLine(b, d);
+			path.AddLine(d, c);
+			path.AddLine(c, a);
+			g.FillPath(&brush, &path);
+		}
 	}
 
-	void drawRect(Graphics &g, int i)
+	void drawRects(Graphics &g)
 	{
-		Point r0(screenRects[i][0][0], screenRects[i][0][1]);
-		Point r1(screenRects[i][1][0], screenRects[i][1][1]);
-		Point r2(screenRects[i][2][0], screenRects[i][2][1]);
-		Point r3(screenRects[i][3][0], screenRects[i][3][1]);
-
-		Pen p(Color(0, 255, 0));
-		GraphicsPath path;
-		path.AddLine(r0, r1);
-		path.AddLine(r1, r3);
-		path.AddLine(r3, r2);
-		path.AddLine(r2, r0);
-		g.DrawPath(&p, &path);
+		Pen pen(Color(0, 255, 0));
+		doubleRect r;
+		for (int i = 0; i < n; i++) {
+			r = screenRects[i];
+			Point a(r.a.x, r.a.y);
+			Point b(r.b.x, r.b.y);
+			Point c(r.c.x, r.c.y);
+			Point d(r.d.x, r.d.y);
+			GraphicsPath path;
+			path.AddLine(a, b);
+			path.AddLine(b, d);
+			path.AddLine(d, c);
+			path.AddLine(c, a);
+			g.DrawPath(&pen, &path);
+		}
 	}
 
-	void drawTiles(Graphics &g, int i)
+	void drawFragments(Graphics &g, int i)
 	{
-		Pen p(Color(255, 0, 0));
+		Pen pen(Color(255, 0, 0));
 		GraphicsPath path;
-		Point a(screenTiles[i][0].x, screenTiles[i][0].y);
-		Point b(screenTiles[i][1].x, screenTiles[i][1].y);
-		Point c(screenTiles[i][2].x, screenTiles[i][2].y);
+		Point a(screenFragments[i].a.x, screenFragments[i].a.y);
+		Point b(screenFragments[i].b.x, screenFragments[i].b.y);
+		Point c(screenFragments[i].c.x, screenFragments[i].c.y);
 		path.AddLine(a, b);
 		path.AddLine(b, c);
 		path.AddLine(c, a);
-		g.DrawPath(&p, &path);
+		g.DrawPath(&pen, &path);
 	}
 
-	void drawBag(Graphics &g, int i)
+	void paintBag(Graphics &g)
 	{
-		Pen p(Color(255, 0, 0));
-		GraphicsPath path;
-		Point a(screenBag[i].a.x, screenBag[i].a.y);
-		Point b(screenBag[i].b.x, screenBag[i].b.y);
-		Point c(screenBag[i].c.x, screenBag[i].c.y);
-		path.AddLine(a, b);
-		path.AddLine(b, c);
-		path.AddLine(c, a);
-		g.DrawPath(&p, &path);
+		Pen pen(Color(255, 0, 0));
+		list<doubleTriangle>::iterator sb = screenBag.begin();
+		while (sb != screenBag.end()) {
+			GraphicsPath path;
+			Point a(sb->a.x, sb->a.y);
+			Point b(sb->b.x, sb->b.y);
+			Point c(sb->c.x, sb->c.y);
+			path.AddLine(a, b);
+			path.AddLine(b, c);
+			path.AddLine(c, a);
+			g.DrawPath(&pen, &path);
+			++sb;
+		}
 	}
 
-	void drawRectEndPoints(Graphics &g, int i)
+	void paintRectEndPoints(Graphics &g)
 	{
-		Pen p(Color(255, 0, 0), 4);
-		g.DrawEllipse(&p, screenRects[i][0][0] - 2, screenRects[i][0][1] - 2, 4, 4);
-		g.DrawEllipse(&p, screenRects[i][1][0] - 2, screenRects[i][1][1] - 2, 4, 4);
-		g.DrawEllipse(&p, screenRects[i][2][0] - 2, screenRects[i][2][1] - 2, 4, 4);
-		g.DrawEllipse(&p, screenRects[i][3][0] - 2, screenRects[i][3][1] - 2, 4, 4);
+		Pen pen(Color(255, 0, 0), 4);
+		doubleRect r;
+		for (int i = 0; i < n; i++) {
+			r = screenRects[i];
+			g.DrawEllipse(&pen, r.a.x - 2, r.a.y - 2, 4, 4);
+			g.DrawEllipse(&pen, r.b.x - 2, r.b.y - 2, 4, 4);
+			g.DrawEllipse(&pen, r.c.x - 2, r.c.y - 2, 4, 4);
+			g.DrawEllipse(&pen, r.d.x - 2, r.d.y - 2, 4, 4);
+		}
 	}
 
-	void paintLine(Graphics &g, int i)
+	void paintLines(Graphics &g)
 	{
 		Pen pen(Color(255, 255, 255), 1);
-		Point p0(screenLines[i][0][0], screenLines[i][0][1]);
-		Point p1(screenLines[i][1][0], screenLines[i][1][1]);
-		g.DrawLine(&pen, p0, p1);
+		doubleLine l;
+		for (int i = 0; i < n; i++) {
+			l = screenLines[i];
+			Point p(l.p.x, l.p.y);
+			Point q(l.q.x, l.q.y);
+			g.DrawLine(&pen, p, q);
+		}
 	}
 
-	void paintLineEndPoints(Graphics &g, int i)
+	void paintLineEndPoints(Graphics &g)
 	{
-		Pen p(Color(0, 0, 0), 6);
-		g.DrawEllipse(&p, screenLines[i][0][0] - 3, screenLines[i][0][1] - 3, 6, 6);
-		g.DrawEllipse(&p, screenLines[i][1][0] - 3, screenLines[i][1][1] - 3, 6, 6);
+		Pen pen(Color(0, 0, 0), 6);
+		doubleLine l;
+		for (int i = 0; i < n; i++) {
+			l = screenLines[i];
+			g.DrawEllipse(&pen, l.p.x - 3, l.p.y - 3, 6, 6);
+			g.DrawEllipse(&pen, l.q.x - 3, l.q.y - 3, 6, 6);
+		}
 	}
 
 	void paint(Graphics &g)
 	{
-		for (int i = 0; i < n; i++) {
-			fillRect(g, i);
-		}
-		//for (int i = 0; i < tileCount; i++) {
-		//	drawTiles(g, i);
+		fillRects(g);
+		//int s = fragments.size();
+		//for (int i = 0; i < s; i++) {
+		//	drawFragments(g, i);
 		//}
-		int s = bag.size();
-		for (int i = 0; i < s; i++) {
-			drawBag(g, i);
-		}
-		//for (int i = 0; i < n; i++) {
-		//	drawRect(g, i);
-		//}
-		for (int i = 0; i < n; i++) {
-			drawRectEndPoints(g, i);
-		}
-		//for (int i = 0; i < n; i++) {
-		//	paintLine(g, i);
-		//}
-		for (int i = 0; i < n; i++) {
-			paintLineEndPoints(g, i);
-		}
+		paintBag(g);
+		drawRects(g);
+		paintRectEndPoints(g);
+		paintLines(g);
+		paintLineEndPoints(g);
 	}
 };
 
