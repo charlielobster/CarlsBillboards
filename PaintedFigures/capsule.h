@@ -23,17 +23,12 @@ public:
 		double s = radius * dx / d;
 		double t = radius * dy / d;
 
-		rect.a.x = line.p.x - s;
-		rect.a.y = line.p.y - t;
-		rect.b.x = line.p.x + s;
-		rect.b.y = line.p.y + t;
-		rect.c.x = line.q.x - s;
-		rect.c.y = line.q.y - t;
-		rect.d.x = line.q.x + s;
-		rect.d.y = line.q.y + t;
-
-		rect.a.set(); rect.b.set(); rect.c.set(); rect.d.set();
-		rect.set();
+		rect = doubleRect(
+			doublePoint(line.p.x - t, line.p.y + s),
+			doublePoint(line.p.x + t, line.p.y - s),
+			doublePoint(line.q.x - t, line.q.y + s),
+			doublePoint(line.q.x + t, line.q.y - s)
+		);
 
 		min = min(line.min, rect.min);
 		max = max(line.max, rect.max);

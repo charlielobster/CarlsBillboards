@@ -31,6 +31,22 @@ public:
 			default: return c;
 		}
 	}
+
+	friend const doubleTriangle operator-(const doubleTriangle &t, double d)
+	{
+		return doubleTriangle(t.a - d, t.b - d, t.c - d);
+	}
+
+	friend const doubleTriangle operator/(const doubleTriangle &t, double d)
+	{
+		assert(d != 0);
+		return doubleTriangle(t.a / d, t.b / d, t.c / d);
+	}
+
+	friend const doubleTriangle operator*(const doubleTriangle &t, double d)
+	{
+		return doubleTriangle(t.a * d, t.b * d, t.c * d);
+	}
 };
 
 

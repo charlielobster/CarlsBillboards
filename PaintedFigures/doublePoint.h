@@ -6,10 +6,6 @@
 #define MAX_DOUBLE 1.79769e+308 
 #define MIN_DOUBLE (-1.0 * MAX_DOUBLE)
 
-#define MAX_RADIUS 49
-#define MAX_DIMENSION 999
-#define MAX_N 49
-
 class doublePoint 
 {
 public:
