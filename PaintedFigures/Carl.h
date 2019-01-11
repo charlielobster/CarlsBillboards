@@ -22,6 +22,14 @@ using namespace Gdiplus;
 #define MAX_DIMENSION 999
 #define MAX_N 49
 
+typedef enum 
+{ 
+	B_SURROUNDS_F, 
+	F_SURROUNDS_B, 
+	COMPLETE_MISS, 
+	INTERSECTION 
+} pairwiseTriangleRelation;
+
 /*
 Carl's Billboards Algorithm:
 
@@ -211,6 +219,11 @@ public:
 	//	return result;
 	//}
 
+	pairwiseTriangleRelation getTriangleRelation(const doubleTriangle &b, const doubleTriangle &f)
+	{
+		return COMPLETE_MISS;
+	}
+
 	void fillFragments()
 	{
 		//	Carl handles triangles first:
@@ -222,40 +235,62 @@ public:
 
 		//	while Carl finds a triangle b in his bag
 		list<doubleTriangle>::iterator b = bag.begin();
-		list<doubleTriangle>::iterator t;
+		doubleTriangle f;
 		while (b != bag.end()) {
 
-			//		while Carl finds a triangle f in fragments
+			//	while Carl finds a triangle f in fragments
+			int i = 0, s = fragments.size();
+			bool breakout = false;
+			while (!breakout && i < s) {
 
+				f = fragments[i++];
+				pairwiseTriangleRelation state = getTriangleRelation(*b, f);
+				switch (state) {
 
-			//		Carl checks to see if b is completely enclosed by f
-			//			if b is completely surrounded by f, Carl throws b away
-			//			Carl breaks out and gets another b from the bag
+				case F_SURROUNDS_B:
+					//  Carl checks to see if b is completely enclosed by f
+					//  	if b is completely surrounded by f, Carl throws b away
+					//  	Carl breaks out and gets another b from the bag
+					++b;
+					breakout = true;
+					break;
 
-			//		Carl checks to see if f is completely enclosed by b
-			//			if f is completely surrounded by b, then Carl breaks up b in the following way:
-			//			create 3 vertices at b's midpoints and along with b and f's vertices, break up b into 10 triangles
-			//			Carl puts the 9 triangles back into his bag and throws out the left-over copy of f
-			//			Carl breaks out and gets another b from the bag
+				case B_SURROUNDS_F:
+					//  Carl checks to see if f is completely enclosed by b
+					//  	if f is completely surrounded by b, then Carl breaks up b in the following way:
+					//  	create 3 vertices at b's midpoints and along with b and f's vertices, break up b into 10 triangles
+					//  	Carl puts the 9 triangles back into his bag and throws out the left-over copy of f
+					//  	Carl breaks out and gets another b from the bag
+					++b;
+					breakout = true;
+					break;
 
-			//		Carl checks to see if f and b completely miss one another
-			//			if f and b completely miss each other, Carl breaks out and gets another f from fragments
+				case COMPLETE_MISS:
+					//  Carl checks to see if f and b completely miss one another
+					//  	if f and b completely miss each other, Carl gets another f from fragments
+					break;
 
-			//		Carl checks to see if b intersects f, the last possibility
-			//			if f and b intersect, and since b and f can share vertices and edges,
-			//			their edges must either intersect at 2 or 4 points
-			//			if only at 2 points, Carl makes one cut into b at those points
-			//			if their edges intersect at 4 points, then Carls makes two pairs of cuts into b,
-			//				Carl then tosses out the piece of b that overlapped with f
-			//				This leaves Carl with triangles, quadrilaterals, or a 5 or 6-sided dimpled shape -
-			//				in case of the 4 or more sided shapes, Carl further breaks those into triangles,
-			//					using special tricks he has figured out for each class of shape
-			//				Carl then throws all the triangles he created back into the bag
-			//				then Carl breaks out and gets a new b from his bag
+				case INTERSECTION:
+					//  Carl checks to see if b intersects f, the last possibility
+					//  	if f and b intersect, and since b and f can share vertices and edges,
+					//  	their edges must either intersect at 2 or 4 points
+					//  	if only at 2 points, Carl makes one cut into b at those points
+					//  	if their edges intersect at 4 points, then Carls makes two pairs of cuts into b,
+					//  		Carl then tosses out the piece of b that overlapped with f
+					//  		This leaves Carl with triangles, quadrilaterals, or a 5 or 6-sided dimpled shape -
+					//  		in case of the 4 or more sided shapes, Carl further breaks those into triangles,
+					//  			using special tricks he has figured out for each class of shape
+					//  		Carl then throws all the triangles he created back into the bag
+					//  		then Carl breaks out and gets a new b from his bag
+					++b;
+					breakout = true;
+					break;
+				}
+			}
 
 			//	if Carl finishes checking every f in fragments and he is still holding b,
 			//		Carl adds b to fragments and gets a new b from his bag
-
+			fragments.push_back(*b);
 			++b;
 		}
 
