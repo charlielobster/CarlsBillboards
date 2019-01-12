@@ -48,6 +48,11 @@ public:
 		return (l.p == r.p && l.q == r.q);
 	}
 
+	friend bool operator!=(const doubleLine &l, const doubleLine &r)
+	{
+		return (l.p.x != r.p.x || l.p.y != r.p.y || l.q.x != r.q.x || l.q.y != r.q.y);
+	}
+
 	friend const doubleLine operator-(const doubleLine &l, double d)
 	{
 		return doubleLine(l.p - d, l.q - d);

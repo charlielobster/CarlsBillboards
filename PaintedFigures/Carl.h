@@ -247,32 +247,49 @@ public:
 	TRIANGLE_RELATION getTriangleRelation(const doubleTriangle &b, const doubleTriangle &f)
 	{
 		if (b == f) return SAME;
+
 		sharedItems e, v = getSharedVertices(b, f);	
+		unsigned short sourceIndex, targetIndex, nextSourceIndex, nextTargetIndex;
+		doubleLine sourceEdge, targetEdge, nextSourceEdge, nextTargetEdge;
+		double cs, ct;
+
 		// Carl finds either 2, 1 or 0 shared vertices
 		assert(v.hits >= 0 && v.hits <= 2);
 
 		switch (v.hits) {
 		case 2:
-			e = getSharedEdges(b, f);		
+			// Carl found 2 co-linear triangles
+
+			e = getSharedEdges(b, f);
 			// Carl can only find 1 shared edge
 			assert(e.hits == 1);
 
+			// For b and f, Carl finds the cross product of each triangle's 
+			// shared edge with the next edge in the triangle.
+			// If the cross products are the same sign, then the triangles must overlap.
+			sourceIndex = e.first;
+			nextSourceIndex = (sourceIndex + 1) % 3;
 
+			targetIndex = e.indices[sourceIndex];
+			nextTargetIndex = (targetIndex + 1) % 3;
 
-			// Carl found 2 co-linear triangles
-			// if the directions of the cross products are the same sign, then the triangles must overlap
+			sourceEdge = b.edge(sourceIndex);
+			nextSourceEdge = b.edge(nextSourceIndex);
 
-//			doubleLine l;
-//			doublePoint p, q;
-//			if (v.targetEdge == AB) {
-//
-//			}
-////			doubleLine s = (v == AB ? b.ab : (v == BC ? b.bc : b.ca));
-//			return CO_LINEAR_OVERLAP;
-//
-//			return CO_LINEAR_TOUCHING;
+			targetEdge = f.edge(targetIndex);
+			nextTargetEdge = f.edge(nextTargetIndex);
 
-			break;
+			cs = cross(sourceEdge.pq, nextSourceEdge.pq);
+			ct = cross(targetEdge.pq, nextTargetEdge.pq);
+
+			// if the normalized shared edge is going in different directions for b and f, Carl flips f's cross product's sign
+//			if (sourceEdge != targetEdge) ct *= -1.0;
+
+			if (cs * ct > 0.0) {
+				return CO_LINEAR_OVERLAP;
+			} else {
+				return CO_LINEAR_TOUCHING;
+			}
 
 		case 1:
 			break;
