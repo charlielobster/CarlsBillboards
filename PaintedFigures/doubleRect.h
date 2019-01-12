@@ -22,8 +22,8 @@ public:
 
 	doubleRect(const doubleRect &r) : a(r.a), b(r.b), c(r.c), d(r.d) { set(); }
 
-	doubleRect(const doublePoint &pa, const doublePoint &pb, 
-		const doublePoint &pc, const doublePoint &pd) : a(pa), b(pb), c(pc), d(pd) 
+	doubleRect(const doublePoint &pa, const doublePoint &pb,
+		const doublePoint &pc, const doublePoint &pd) : a(pa), b(pb), c(pc), d(pd)
 	{
 		set();
 	}
@@ -36,12 +36,7 @@ public:
 		return *this;
 	}
 
-	friend doubleRect operator*(const doubleRect &r, double t)
-	{
-		return doubleRect(r.a * t, r.b * t, r.c * t, r.d * t);
-	}
-
-	const doublePoint &operator[](unsigned short i) const 
+	const doublePoint &operator[](unsigned short i) const
 	{
 		assert(i < 4);
 		switch (i) {
@@ -50,5 +45,10 @@ public:
 			case 2: return c;
 			default: return d;
 		}
+	}
+
+	friend doubleRect operator*(const doubleRect &r, double t)
+	{
+		return doubleRect(r.a * t, r.b * t, r.c * t, r.d * t);
 	}
 };

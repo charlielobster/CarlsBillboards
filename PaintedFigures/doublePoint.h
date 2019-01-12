@@ -1,7 +1,6 @@
 #pragma once
 
 #include <assert.h>
-#include <math.h>
 
 #define MAX_DOUBLE 1.79769e+308 
 #define MIN_DOUBLE (-1.0 * MAX_DOUBLE)
@@ -49,7 +48,16 @@ public:
 		return *this;
 	}
 
-	const double &operator[](unsigned short i) const { assert(i < 2);  return (i == 0 ? x : y); }
+	const double &operator[](unsigned short i) const 
+	{ 
+		assert(i < 2);  
+		return (i == 0 ? x : y); 
+	}
+
+	friend bool operator==(const doublePoint &p, const doublePoint &q)
+	{
+		return (p.x == q.x && p.y == q.y);
+	}
 
 	friend const doublePoint operator-(const doublePoint &q, const doublePoint &p)
 	{

@@ -24,20 +24,42 @@ using namespace Gdiplus;
 
 typedef enum 
 { 
-	B_SURROUNDS_F, 
+	SAME,
+	CO_LINEAR_OVERLAP,
+	CO_LINEAR_TOUCHING,
+	B_SURROUNDS_F,
 	F_SURROUNDS_B, 
 	COMPLETE_MISS, 
 	INTERSECTION 
-} pairwiseTriangleRelation;
+} TRIANGLE_RELATION;
 
 /*
 Carl's Billboards Algorithm:
 
-Carl collects all the capsules he wants to use for this billboard
+Carl collects all the capsules he wants to use for this billboard, putting each one into his bag, one at a time.
+As he inserts them, Carl sorts the capsules by size, with the largest being first. 
+
+Once all the capsules are collected (and sorted by size in the bag), Carl begins placing capsules, 
+
+Starting with the largest capsule in the bag, Carl places a capsule on the billboard.
+He goes through all the capsules, one at a time, always starting with the largest capsule, until he reaches the last capsule.
+
+If Carl 
+
+his only rule at this point is to only place capsules that do not overlap
+
+
+Carl does so by breaking up the capsule into two triangles and two semi-circles.
+
+
+is only place the capsule by breaking the capsule into two triangles and two semi-circles.
+He uses 
+Carl uses the 
+
 Carl first breaks each capsule into two triangles making up a rect of size radius x line.distance, 
 and two semi-circles on either ends of the rect
 
-Carl handles triangles first:
+Carl handles triangles next:
 
 	Carl puts all the triangles making up all the capsules into his "bag"
 	he also makes a new empty collection of triangles, the "fragments" that have already been placed into the billboard
@@ -86,11 +108,14 @@ using namespace std;
 class Carl
 {
 public:
-	capsule capsules[200];
-	capsule unitCapsules[200];
+	//capsule capsules[200];
+	//capsule unitCapsules[200];
 
-	list<doubleTriangle> bag;			// all the triangles Carl wants to paint
-	vector<doubleTriangle> fragments;	// the triangle fragments comprising the colored regions of Carl's billboard
+	list<capsule>capsules;
+	list<capsule>unitCapsules;
+
+	list<doubleTriangle> bag;			// the triangles Carl wants to paint
+	vector<doubleTriangle> fragments;	// the triangular fragments (colored regions) on Carl's billboard
 
 	list<doubleTriangle> unitBag;
 	vector<doubleTriangle> unitFragments;
@@ -104,11 +129,11 @@ public:
 	unsigned short n;
 	double min = MAX_DOUBLE, max = MIN_DOUBLE, d = 0;
 
-	//bool sameSide(const doublePoint &p1, const doublePoint &p2, const doublePoint &a, const doublePoint &b)
+	//bool sameSide(const doublePoint &p, const doublePoint &q, const doublePoint &a, const doublePoint &b)
 	//{
-	//	double c = cross((b - a), (p1 - a));
-	//	double cp1 = crossProduct(b - a, p1 - a);
-	//	double cp2 = crossProduct(b - a, p2 - a);
+	//	double c = cross((b - a), (p - a));
+	//	double cp1 = crossProduct(b - a, p - a);
+	//	double cp2 = crossProduct(b - a, q - a);
 	//	if (cp1 * cp2 >= 0.0) {
 	//		return true;
 	//	}
@@ -118,9 +143,9 @@ public:
 	//}
 	//bool pointInTriangle(doublePoint &p, doubleTriangle &t)
 	//{
-	//	if (sameSide(p, t[0], t[1], t[2]) &&
-	//		sameSide(p, t[1], t[0], t[2]) &&
-	//		sameSide(p, t[2], t[0], t[1])) {
+	//	if (sameSide(p, t.a, t.b, t.c) &&
+	//		sameSide(p, t.b, t.a, t.c) &&
+	//		sameSide(p, t.b, t.a, t.b)) {
 	//		return true;
 	//	}
 	//	else {
@@ -219,19 +244,75 @@ public:
 	//	return result;
 	//}
 
-	pairwiseTriangleRelation getTriangleRelation(const doubleTriangle &b, const doubleTriangle &f)
+	TRIANGLE_RELATION getTriangleRelation(const doubleTriangle &b, const doubleTriangle &f)
 	{
-		return COMPLETE_MISS;
+		if (b == f) return SAME;
+		sharedItems e, v = getSharedVertices(b, f);	
+		// Carl finds either 2, 1 or 0 shared vertices
+		assert(v.hits >= 0 && v.hits <= 2);
+
+		switch (v.hits) {
+		case 2:
+			e = getSharedEdges(b, f);		
+			// Carl can only find 1 shared edge
+			assert(e.hits == 1);
+
+
+
+			// Carl found 2 co-linear triangles
+			// if the directions of the cross products are the same sign, then the triangles must overlap
+
+//			doubleLine l;
+//			doublePoint p, q;
+//			if (v.targetEdge == AB) {
+//
+//			}
+////			doubleLine s = (v == AB ? b.ab : (v == BC ? b.bc : b.ca));
+//			return CO_LINEAR_OVERLAP;
+//
+//			return CO_LINEAR_TOUCHING;
+
+			break;
+
+		case 1:
+			break;
+
+		case 0:
+
+			// Although no edges or vertices match, the triangles may still overlap...
+			// Their edges can either intersect at 2 or 4 points
+			// Carl find some intersection points
+			return INTERSECTION;
+			// else 
+			return COMPLETE_MISS;
+		}
+//		if (e.hits) {
+//			// Carl found a co-linear triangle
+//			// if the directions of the cross products are the same sign, then the triangles must overlap
+//			doubleLine l;
+//			doublePoint p, q;
+//			if (v.targetEdge == AB) {
+//
+//			}
+////			doubleLine s = (v == AB ? b.ab : (v == BC ? b.bc : b.ca));
+//			return CO_LINEAR_OVERLAP;
+//
+//			return CO_LINEAR_TOUCHING;
+//		} else {
+			// Carl also checks to see if the triangle edges intersect anywhere
+//		}
+//		if (v.sourceEdge == AB || v.sourceEdge == BC || v.sourceEdge == CA) {
 	}
 
 	void fillFragments()
 	{
-		//	Carl handles triangles first:
-		//	Carl puts all the triangles making up all the capsules into his "bag"
-		//	he also makes a new empty collection of triangles, the "fragments" that have already been placed into the billboard
-		//	the bag can have many duplicates of what is in fragments,
-		//	but every triangle in fragments is unique in that no 2 triangles in fragments share any area
-		//	but triangles in fragments may share vertices or have co-linear sides
+		//	Carl has already put the triangles making up all the capsules into his "bag", 
+		//	which is sorted by area, with the largest first.
+		//	Carl also makes a new empty collection of triangles, the "fragments", 
+		//	which are triangles already placed on the billboard.
+		//	The bag can have many duplicates of what is in fragments. 
+		//	However, every triangle in fragments is unique, in that no 2 triangles in fragments share any area, 
+		//	but triangle fragments may share vertices or have co-linear sides
 
 		//	while Carl finds a triangle b in his bag
 		list<doubleTriangle>::iterator b = bag.begin();
@@ -244,9 +325,10 @@ public:
 			while (!breakout && i < s) {
 
 				f = fragments[i++];
-				pairwiseTriangleRelation state = getTriangleRelation(*b, f);
+				TRIANGLE_RELATION state = getTriangleRelation(*b, f);
 				switch (state) {
 
+				case SAME:
 				case F_SURROUNDS_B:
 					//  Carl checks to see if b is completely enclosed by f
 					//  	if b is completely surrounded by f, Carl throws b away
@@ -265,11 +347,13 @@ public:
 					breakout = true;
 					break;
 
+				case CO_LINEAR_TOUCHING:
 				case COMPLETE_MISS:
 					//  Carl checks to see if f and b completely miss one another
 					//  	if f and b completely miss each other, Carl gets another f from fragments
 					break;
 
+				case CO_LINEAR_OVERLAP:
 				case INTERSECTION:
 					//  Carl checks to see if b intersects f, the last possibility
 					//  	if f and b intersect, and since b and f can share vertices and edges,
@@ -297,36 +381,50 @@ public:
 		//if there are no triangles left in the bag, continue to circles...
 	}
 
+	void insertCapsule(list<capsule> &capsules, const capsule &c)
+	{
+		list<capsule>::iterator cptr = capsules.begin();
+		while (cptr != capsules.end() && cptr->area > c.area) {
+			++cptr;
+		}
+		capsules.insert(cptr, c);
+	}
+
 	void init()
 	{
+		capsule c;
 		//srand((unsigned int)time(0));
 		n = 3; // (rand() % MAX_N) + 1;
 
 		for (int i = 0; i < n; i++) {
-
 			// Carl collects a capsule
-			capsules[i] = capsule(
+			c = capsule(
 				doubleLine(
 					rand() % MAX_DIMENSION + 1,
 					rand() % MAX_DIMENSION + 1,
 					rand() % MAX_DIMENSION + 1,
 					rand() % MAX_DIMENSION + 1),
 				rand() % MAX_RADIUS + 10);
+			insertCapsule(capsules, c);
 
 			// Carl also collects the capsule's bounds
-			if (capsules[i].min < min) { min = capsules[i].min; }
-			if (capsules[i].max > max) { max = capsules[i].max; }
+			if (c.min < min) { min = c.min; }
+			if (c.max > max) { max = c.max; }
+		}
 
+		list<capsule>::iterator cptr = capsules.begin();
+		while (cptr != capsules.end()) {
 			// Carl adds the capsule's triangles to his bag
-			doubleRect r = capsules[i].rect;
+			doubleRect r = cptr->rect;
 			doubleTriangle t1(r.a, r.b, r.c);
 			doubleTriangle t2(r.b, r.c, r.d);
 			bag.push_back(t1);
 			bag.push_back(t2);
+			++cptr;
 		}
 
 		// Carl has filled his bag of triangles
-		// he's ready to sort the contents of his bag into billboard fragments
+		// he's ready to sort the contents into billboard fragments
 		fillFragments();
 
 		// find the overall bounds of the set 
@@ -334,8 +432,10 @@ public:
 		min -= MAX_RADIUS; max += MAX_RADIUS;
 		d = max - min;
 
-		for (int i = 0; i < n; i++) {
-			unitCapsules[i] = (capsules[i] - min) / d;
+		cptr = capsules.begin();
+		while (cptr != capsules.end()) {
+			insertCapsule(unitCapsules, (*cptr - min) / d);
+			++cptr;
 		}
 
 		list<doubleTriangle>::iterator b = bag.begin();
@@ -366,11 +466,13 @@ public:
 		screenBag.clear();
 		screenFragments.clear();
 
-		for (int i = 0; i < n; i++) {
-			doubleRect r = unitCapsules[i].rect * minScreen;
+		list<capsule>::iterator cptr = unitCapsules.begin();
+		while (cptr != unitCapsules.end()) {
+			doubleRect r = cptr->rect * minScreen;
 			screenRects.push_back(r);
-			doubleLine l = unitCapsules[i].line * minScreen;
+			doubleLine l = cptr->line * minScreen;
 			screenLines.push_back(l);
+			++cptr;
 		}
 
 		list<doubleTriangle>::iterator u = unitBag.begin();

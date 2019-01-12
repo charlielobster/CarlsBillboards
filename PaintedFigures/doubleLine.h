@@ -10,6 +10,9 @@ public:
 	doublePoint pq;
 	double m;
 	double b;
+	double dy;
+	double dx;
+	double d;
 	double min;
 	double max;
 	doubleLine() {}
@@ -17,6 +20,9 @@ public:
 	void set()
 	{
 		pq = q - p;
+		dy = pq.y;
+		dx = pq.x;
+		d = pq.d;
 		min = min(p.min, q.min);
 		max = max(p.max, q.max);
 		m = pq.m;
@@ -37,6 +43,11 @@ public:
 
 	const doublePoint &operator[](int i) const { return (i == 0 ? p : q); }
 
+	friend bool operator==(const doubleLine &l, const doubleLine &r)
+	{
+		return (l.p == r.p && l.q == r.q);
+	}
+
 	friend const doubleLine operator-(const doubleLine &l, double d)
 	{
 		return doubleLine(l.p - d, l.q - d);
@@ -50,6 +61,11 @@ public:
 	friend const doubleLine operator/(const doubleLine &l, double d)
 	{
 		return doubleLine(l.p / d, l.q / d);
+	}
+
+	friend bool colinear(const doubleLine &l, const doubleLine &r)
+	{
+		return ((l == r) || (r.q == l.p && r.p == l.q));
 	}
 
 	friend const doublePoint intersection(const doubleLine &l1, const doubleLine &l2)
