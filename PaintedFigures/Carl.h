@@ -363,12 +363,16 @@ public:
 						// 2 cases: either two vertices in b are bounded by f, or only 1 vertex in b is bounded
 
 						triangleQuery bounded = boundVertices(b, f);
-						unsigned short s = 4 - (intersections.pts[0].sourceIndex + intersections.pts[1].sourceIndex);
-						doubleTriangle t(intersections.pts[0].point, intersections.pts[1].point, b.vertex(s));
-
 						assert(0 < bounded.hits && bounded.hits < 3);
 
 						if (bounded.hits == 1) {
+
+							doublePoint v1 = b.vertex((bounded.first + 1) % 3);
+							doublePoint v2 = b.vertex((bounded.first + 2) % 3);
+
+							doubleTriangle t1(intersections.pts[0].point, intersections.pts[1].point, v1);
+							doubleTriangle t2(intersections.pts[1].point, v2, v1);
+
 
 							//	1 vertex in b is bounded by f
 							//	Carl creates 2 new, smaller triangles from the intersection points and the remaining 2 vertices in b
@@ -376,7 +380,8 @@ public:
 
 							//	if results have two different sourceIndices, their sum is either [0] + [1] = 1, [0] + [2] = 2, or [1] + [2] = 3
 
-							insertTriangle(bag, t);
+							insertTriangle(bag, t1);
+							insertTriangle(bag, t2);
 						} else {
 
 
@@ -385,7 +390,7 @@ public:
 
 							//	if results have two different sourceIndices, their sum is either [0] + [1] = 1, [0] + [2] = 2, or [1] + [2] = 3
 
-							insertTriangle(bag, t);
+//							insertTriangle(bag, t);
 						}
 						return DISCARD;
 					}
