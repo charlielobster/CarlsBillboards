@@ -2,10 +2,14 @@
 
 #define M_PI 3.1415926535897932384626433832795 
 
+#include <list>
+
 #include "doublePoint.h"
 #include "doubleLine.h"
 #include "doubleTriangle.h"
 #include "doubleRect.h"
+
+using namespace std;
 
 class capsule
 {
@@ -59,5 +63,14 @@ public:
 	friend capsule operator/(const capsule &c, double d)
 	{
 		return capsule(c.line / d, c.radius / d);
+	}
+
+	friend void insertCapsule(list<capsule> &capsules, const capsule &c)
+	{
+		list<capsule>::iterator cptr = capsules.begin();
+		while (cptr != capsules.end() && cptr->area > c.area) {
+			++cptr;
+		}
+		capsules.insert(cptr, c);
 	}
 };

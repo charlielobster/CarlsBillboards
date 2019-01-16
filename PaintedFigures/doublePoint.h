@@ -4,6 +4,7 @@
 
 #define MAX_DOUBLE 1.79769e+308 
 #define MIN_DOUBLE (-1.0 * MAX_DOUBLE)
+#define MIN_POINT doublePoint(MIN_DOUBLE, MIN_DOUBLE)
 
 class doublePoint 
 {
@@ -57,6 +58,11 @@ public:
 	friend bool operator==(const doublePoint &p, const doublePoint &q)
 	{
 		return (p.x == q.x && p.y == q.y);
+	}
+
+	friend bool operator!=(const doublePoint &p, const doublePoint &q)
+	{
+		return (p.x != q.x || p.y != q.y);
 	}
 
 	friend const doublePoint operator-(const doublePoint &q, const doublePoint &p)

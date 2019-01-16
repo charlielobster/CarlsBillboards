@@ -8,81 +8,68 @@
 #include <time.h> 
 #include <vector>
 #include <list>
+#include <assert.h>
 
 #include "doublePoint.h"
 #include "doubleLine.h"
 #include "doubleTriangle.h"
 #include "doubleRect.h"
 #include "capsule.h"
-
-using namespace Gdiplus;
-#pragma comment (lib,"Gdiplus.lib")
+#include "windowsHelper.h"
 
 #define MAX_RADIUS 49
 #define MAX_DIMENSION 999
 #define MAX_N 49
 
-typedef enum 
-{ 
-	SAME,
-	CO_LINEAR_OVERLAP,
-	CO_LINEAR_TOUCHING,
-	B_SURROUNDS_F,
-	F_SURROUNDS_B, 
-	COMPLETE_MISS, 
-	INTERSECTION 
-} TRIANGLE_RELATION;
+typedef enum
+{
+	DISCARD,
+	B_SURROUNDS_F, // Carl is not sure if this state is possible...
+	MISS,
+	INTERSECTION // Carl wonders if this is too general a state
+} triangleRelation; // Carl wonders if this enum is all that useful...
 
 /*
-Carl's Billboards Algorithm:
+	Carl's Billboards Algorithm:
 
-Carl collects all the capsules he wants to use for this billboard, putting each one into his bag, one at a time.
-As he inserts them, Carl sorts the capsules by size, with the largest being first. 
+	Carl only paints 2D versions of something called a "capsule". 
+	There is a 3D version of the kind of figure Carl paints described here:
+	https://en.wikipedia.org/wiki/Capsule_%28geometry%29 
+	Carl thinks of it as linear strokes of a monochromatic pen with variable thickness.
+	They look like shadows of capsules, or tic-tacs, or a special kind of ovals, called "Cassini" ovals...
 
-Once all the capsules are collected (and sorted by size in the bag), Carl begins placing capsules, 
+	At any rate, Carl breaks the figure, or capsule, 
+	into 2 triangles that make up 1 rectangle, and 2 semi-circles on either end of the rectangle.
+	Carl puts the semi-circles aside and deals with them later.
+	Carl inserts the triangles making up the rectangle into his "bag".
+	As he does so, he sorts them by area, with the largest always being first out of his bag.
 
-Starting with the largest capsule in the bag, Carl places a capsule on the billboard.
-He goes through all the capsules, one at a time, always starting with the largest capsule, until he reaches the last capsule.
-
-If Carl 
-
-his only rule at this point is to only place capsules that do not overlap
-
-
-Carl does so by breaking up the capsule into two triangles and two semi-circles.
+	Once all the capsules are collected (and triangles making up the rectangular portions of the capsule sorted by area in the bag),
+	Carl begins placing triangles into his empty "fragments" collection.
+	Carl's "fragments" are triangles that, in a sense, have already been placed on the billboard.
+	The bag can have many duplicates of what is inside it or in fragments.
+	But every triangle in fragments is "unique" in that no 2 triangles in fragments share any area.
+	However, fragments may share vertices, or even have co-linear or partially co-linear sides.
 
 
-is only place the capsule by breaking the capsule into two triangles and two semi-circles.
-He uses 
-Carl uses the 
+	Carl fills his fragments collection:
+	while Carl finds a triangle b in his bag  -- outer loop
 
-Carl first breaks each capsule into two triangles making up a rect of size radius x line.distance, 
-and two semi-circles on either ends of the rect
-
-Carl handles triangles next:
-
-	Carl puts all the triangles making up all the capsules into his "bag"
-	he also makes a new empty collection of triangles, the "fragments" that have already been placed into the billboard
-	the bag can have many duplicates of what is in fragments,  
-	but every triangle in fragments is unique in that no 2 triangles in fragments share any area
-	but triangles in fragments may share vertices or have co-linear sides
-	
-	while Carl finds a triangle b in his bag
-
-		while Carl finds a triangle f in fragments
+		while Carl finds a triangle f in fragments	-- inner loop
 			
 			Carl checks to see if b is completely enclosed by f
 				if b is completely surrounded by f, Carl throws b away
-				Carl breaks out and gets another b from the bag
+					Carl breaks out of inner loop and gets another b from the bag
 				
 			Carl checks to see if f is completely enclosed by b
-				if f is completely surrounded by b, then Carl breaks up b in the following way:
-				create 3 vertices at b's midpoints and along with b and f's vertices, break up b into 10 triangles 
-				Carl puts the 9 triangles back into his bag and throws out the left-over copy of f 
-				Carl breaks out and gets another b from the bag
+				(Carl isn't sure this is even a valid case, because he starts out with a bag sorted by area with largest first...)
+				Carl supposes that if this case occurs and f is completely surrounded by b, then Carl will break up b in the following way:
+					Create 3 vertices at b's midpoints and along with b and f's vertices, break up b into 10 triangles 
+					Carl puts the 9 triangles back into his bag and throws out the left-over copy of f 
+					Carl breaks out of inner loop and gets another b from the bag
 
 			Carl checks to see if f and b completely miss one another
-				if f and b completely miss each other, Carl breaks out and gets another f from fragments
+				If f and b completely miss each other, Carl gets another f from fragments
 			
 			Carl checks to see if b intersects f, the last possibility
 				if f and b intersect, and since b and f can share vertices and edges, 
@@ -108,23 +95,11 @@ using namespace std;
 class Carl
 {
 public:
-	//capsule capsules[200];
-	//capsule unitCapsules[200];
-
 	list<capsule>capsules;
-	list<capsule>unitCapsules;
-
 	list<doubleTriangle> bag;			// the triangles Carl wants to paint
 	vector<doubleTriangle> fragments;	// the triangular fragments (colored regions) on Carl's billboard
 
-	list<doubleTriangle> unitBag;
-	vector<doubleTriangle> unitFragments;
-
-	vector<doubleLine> screenLines;
-	vector<doubleRect> screenRects;
-	
-	list<doubleTriangle> screenBag;
-	vector<doubleTriangle> screenFragments;
+	windowsHelper helper;
 
 	unsigned short n;
 	double min = MAX_DOUBLE, max = MIN_DOUBLE, d = 0;
@@ -244,133 +219,266 @@ public:
 	//	return result;
 	//}
 
-	TRIANGLE_RELATION getTriangleRelation(const doubleTriangle &b, const doubleTriangle &f)
+	triangleRelation getTriangleRelationship(const doubleTriangle &b, const doubleTriangle &f)
 	{
-		if (b == f) return SAME;
+		if (b == f) return DISCARD;
 
-		sharedItems e, v = getSharedVertices(b, f);	
-		unsigned short sourceIndex, targetIndex, nextSourceIndex, nextTargetIndex;
-		doubleLine sourceEdge, targetEdge, nextSourceEdge, nextTargetEdge;
-		double cs, ct;
+		triangleQuery v = getSharedVertices(b, f);	
 
 		// Carl finds either 2, 1 or 0 shared vertices
 		assert(v.hits >= 0 && v.hits <= 2);
 
-		switch (v.hits) {
-		case 2:
-			// Carl found 2 co-linear triangles
+		switch (v.hits)
+		{
+			case 2:
+			{
+				// Carl found 2 co-linear triangles
+				unsigned short sourceIndex, targetIndex;
+				unsigned short nextSourceIndex, nextTargetIndex;
 
-			e = getSharedEdges(b, f);
-			// Carl can only find 1 shared edge
-			assert(e.hits == 1);
+				doubleLine sourceEdge, targetEdge;
+				doubleLine nextSourceEdge, nextTargetEdge;
 
-			// For b and f, Carl finds the cross product of each triangle's 
-			// shared edge with the next edge in the triangle.
-			// If the cross products are the same sign, then the triangles must overlap.
-			sourceIndex = e.first;
-			nextSourceIndex = (sourceIndex + 1) % 3;
+				double cs, ct;
 
-			targetIndex = e.indices[sourceIndex];
-			nextTargetIndex = (targetIndex + 1) % 3;
+				triangleQuery e = getSharedEdges(b, f);
+				// Carl can only find 1 shared edge
+				assert(e.hits == 1);
 
-			sourceEdge = b.edge(sourceIndex);
-			nextSourceEdge = b.edge(nextSourceIndex);
+				// For b and f, Carl finds the cross product of each triangle's 
+				// shared edge with its corresponding next edge in each triangle.
+				// If the cross products are the same sign, then the triangles must overlap.
+				sourceIndex = e.first;
+				nextSourceIndex = (sourceIndex + 1) % 3;
 
-			targetEdge = f.edge(targetIndex);
-			nextTargetEdge = f.edge(nextTargetIndex);
+				targetIndex = e.indices[sourceIndex];
+				nextTargetIndex = (targetIndex + 1) % 3;
 
-			cs = cross(sourceEdge.pq, nextSourceEdge.pq);
-			ct = cross(targetEdge.pq, nextTargetEdge.pq);
+				sourceEdge = b.edge(sourceIndex);
+				nextSourceEdge = b.edge(nextSourceIndex);
 
-			// if the normalized shared edge is going in different directions for b and f, Carl flips f's cross product's sign
-//			if (sourceEdge != targetEdge) ct *= -1.0;
+				targetEdge = f.edge(targetIndex);
+				nextTargetEdge = f.edge(nextTargetIndex);
 
-			if (cs * ct > 0.0) {
-				return CO_LINEAR_OVERLAP;
-			} else {
-				return CO_LINEAR_TOUCHING;
+				cs = cross(sourceEdge.pq, nextSourceEdge.pq);
+				ct = cross(targetEdge.pq, nextTargetEdge.pq);
+
+				//	If the edge is going in different directions for b and f, 
+				//	Carl flips f's cross product's sign
+				if (sourceEdge != targetEdge) ct *= -1.0;
+
+				if (cs * ct > 0.0) {
+
+					int oppositeSourceIndex = (nextSourceIndex + 1) % 3;
+					int oppositeTargetIndex = (nextTargetIndex + 1) % 3;
+
+					doubleLine oppositeSourceEdge = b.edge(oppositeSourceIndex);
+					doubleLine oppositeTargetEdge = f.edge(oppositeTargetIndex);
+
+					doublePoint pt1 = intersection(nextSourceEdge, nextTargetEdge);
+					doublePoint pt2 = intersection(nextSourceEdge, oppositeTargetIndex);
+					doublePoint pt3 = intersection(oppositeSourceIndex, nextTargetEdge);
+					doublePoint pt4 = intersection(nextSourceEdge, oppositeTargetEdge);
+
+					//	Carl finds the intersection point between the triangles.
+					//	if the point is a vertex belonging to b and lies on the edge of f, then Carl will discard b
+					//	otherwise, Carl breaks b into 2 triangles, 
+					//	with the intersection point acting as a shared vertex between the 2.
+					//	Carl puts both triangles back into his bag, and discards whatever remains 
+
+					return INTERSECTION;
+				}
+				else {
+					return MISS;
+				}
 			}
-
-		case 1:
 			break;
 
-		case 0:
+			case 1:
+			{
+				//	Carl notices that if b and f share only 1 vertex, 
+				//	they are either partially co-linear, in which case b and f will intersect at another point
+				//	and one triangle will completely overlap with other,
+				//	or they are just touching at the vertex, and can be handled as if they completely missed one another
+				int lIdx = v.first;
+				int rIdx = v.indices[lIdx];
+				doubleLine lEdge = b.edge(lIdx);
+				doubleLine rEdge = f.edge(rIdx);
+				doublePoint pt = intersection(lEdge, rEdge);
 
-			// Although no edges or vertices match, the triangles may still overlap...
-			// Their edges can either intersect at 2 or 4 points
-			// Carl find some intersection points
-			return INTERSECTION;
-			// else 
-			return COMPLETE_MISS;
+				if (pt == doublePoint(MIN_DOUBLE, MIN_DOUBLE)) {
+					return INTERSECTION;
+				} else {
+					return MISS;
+				}
+			}
+			break;
+
+			case 0:
+			{
+				// Although no edges or vertices match, the triangles may still overlap in various ways...
+
+
+				// Carl wants to know more about whether 1 triangle's vertex is bounded by the other triangle 
+
+
+
+				// Carl finds some intersection points...
+				triangleIntersections intersections;
+				doublePoint intersectionPoint;
+				for (unsigned short i = 0; i < 3; i++) {
+					for (unsigned short j = 0; j < 3; j++) {
+						intersectionPoint = intersection(b.edge(i), f.edge(j));
+						if (intersectionPoint != MIN_POINT)
+						{
+							intersections.pts[intersections.hits++] = triangleIntersectionPoint(i, j, intersectionPoint);
+						}
+					}
+				}
+
+				// Carl notices that the edges of b and f can intersect at either 2 or 4 points...
+				//assert(result.hits < 6 && (result.hits % 2 == 0));
+
+				switch (intersections.hits) 
+				{
+				case 0: return MISS;
+				case 2:
+					{
+
+/*
+						b intersects f at 2 points
+						there are 3 cases:
+*//*
+						1 edge in b intersects with 2 different edges in f
+						 -	in which case, Carl creates 3 new smaller triangles, puts them into his bag, and discards the overlap
+*//*
+						2 edges in b intersect with 2 different edges in f
+						 -	in which case, Carl creates 4 new smaller triangles, puts those into his bag, and discards the overlap
+*/
+					
+					//	2 edges in b intersect with the same edge in f
+					if (intersections.pts[0].sourceIndex != intersections.pts[1].sourceIndex && 
+						intersections.pts[0].targetIndex == intersections.pts[1].targetIndex) {
+					
+						// 2 cases: either two vertices in b are bounded by f, or only 1 vertex in b is bounded
+
+						triangleQuery bounded = boundVertices(b, f);
+						unsigned short s = 4 - (intersections.pts[0].sourceIndex + intersections.pts[1].sourceIndex);
+						doubleTriangle t(intersections.pts[0].point, intersections.pts[1].point, b.vertex(s));
+
+						assert(0 < bounded.hits && bounded.hits < 3);
+
+						if (bounded.hits == 1) {
+
+							//	1 vertex in b is bounded by f
+							//	Carl creates 2 new, smaller triangles from the intersection points and the remaining 2 vertices in b
+
+
+							//	if results have two different sourceIndices, their sum is either [0] + [1] = 1, [0] + [2] = 2, or [1] + [2] = 3
+
+							insertTriangle(bag, t);
+						} else {
+
+
+							//	In which case, the bulk of the triangle (2 out of 3 vertices) is discarded
+							//	Carl creates a new, smaller triangle from the intersection points and the remaining vertex in b
+
+							//	if results have two different sourceIndices, their sum is either [0] + [1] = 1, [0] + [2] = 2, or [1] + [2] = 3
+
+							insertTriangle(bag, t);
+						}
+						return DISCARD;
+					}
+				}
+				return INTERSECTION;
+				case 4:
+					{
+						doubleLine x;
+						//doubleLine y;
+						//doublePoint a, b, c;
+						//sharedItems i;
+					}
+					return INTERSECTION;
+				default:
+					return MISS;
+				}
+			}
+			break;
+
+			default:
+			{
+				return MISS;
+			}
+			break;
 		}
-//		if (e.hits) {
-//			// Carl found a co-linear triangle
-//			// if the directions of the cross products are the same sign, then the triangles must overlap
-//			doubleLine l;
-//			doublePoint p, q;
-//			if (v.targetEdge == AB) {
-//
-//			}
-////			doubleLine s = (v == AB ? b.ab : (v == BC ? b.bc : b.ca));
-//			return CO_LINEAR_OVERLAP;
-//
-//			return CO_LINEAR_TOUCHING;
-//		} else {
-			// Carl also checks to see if the triangle edges intersect anywhere
-//		}
-//		if (v.sourceEdge == AB || v.sourceEdge == BC || v.sourceEdge == CA) {
+	//		if (e.hits) {
+	//			// Carl found a co-linear triangle
+	//			// if the directions of the cross products are the same sign, then the triangles must overlap
+	//			doubleLine l;
+	//			doublePoint p, q;
+	//			if (v.targetEdge == AB) {
+	//
+	//			}
+	////			doubleLine s = (v == AB ? b.ab : (v == BC ? b.bc : b.ca));
+	//			return CO_LINEAR_OVERLAP;
+	//
+	//			return CO_LINEAR_TOUCHING;
+	//		} else {
+	//// Carl also checks to see if the triangle edges intersect anywhere
+	//		}
+	//		if (v.sourceEdge == AB || v.sourceEdge == BC || v.sourceEdge == CA) {
 	}
 
 	void fillFragments()
 	{
 		//	Carl has already put the triangles making up all the capsules into his "bag", 
-		//	which is sorted by area, with the largest first.
-		//	Carl also makes a new empty collection of triangles, the "fragments", 
+		//	Carl's bag is sorted by area, with the largest first.
+		//	Carl also has a new, empty collection of triangles, the "fragments", 
 		//	which are triangles already placed on the billboard.
 		//	The bag can have many duplicates of what is in fragments. 
-		//	However, every triangle in fragments is unique, in that no 2 triangles in fragments share any area, 
-		//	but triangle fragments may share vertices or have co-linear sides
+		//	Triangles in fragments do not share any area, 
+		//	but they may share vertices or have co-linear, or partially co-linear sides
 
 		//	while Carl finds a triangle b in his bag
-		list<doubleTriangle>::iterator b = bag.begin();
+		list<doubleTriangle>::iterator current = bag.begin(), next;
 		doubleTriangle f;
-		while (b != bag.end()) {
+		triangleRelation state = MISS;
+		while (current != bag.end()) { // while !bag.empty()
 
+			next = std::next(current, 1);
 			//	while Carl finds a triangle f in fragments
 			int i = 0, s = fragments.size();
 			bool breakout = false;
 			while (!breakout && i < s) {
 
 				f = fragments[i++];
-				TRIANGLE_RELATION state = getTriangleRelation(*b, f);
+				state = getTriangleRelationship(*current, f);
+
 				switch (state) {
 
-				case SAME:
-				case F_SURROUNDS_B:
+				case DISCARD:
 					//  Carl checks to see if b is completely enclosed by f
 					//  	if b is completely surrounded by f, Carl throws b away
 					//  	Carl breaks out and gets another b from the bag
-					++b;
 					breakout = true;
 					break;
 
 				case B_SURROUNDS_F:
 					//  Carl checks to see if f is completely enclosed by b
-					//  	if f is completely surrounded by b, then Carl breaks up b in the following way:
+					//	(this seems impossible when you think about how Carl's bag is sorted by area, largest first...)
+					//  	Carl supposes that if this scenario occurs, he could do the following: 
+					//		if f is completely surrounded by b, then Carl breaks up b in the following way:
 					//  	create 3 vertices at b's midpoints and along with b and f's vertices, break up b into 10 triangles
 					//  	Carl puts the 9 triangles back into his bag and throws out the left-over copy of f
 					//  	Carl breaks out and gets another b from the bag
-					++b;
 					breakout = true;
 					break;
 
-				case CO_LINEAR_TOUCHING:
-				case COMPLETE_MISS:
+				case MISS:
 					//  Carl checks to see if f and b completely miss one another
 					//  	if f and b completely miss each other, Carl gets another f from fragments
 					break;
 
-				case CO_LINEAR_OVERLAP:
 				case INTERSECTION:
 					//  Carl checks to see if b intersects f, the last possibility
 					//  	if f and b intersect, and since b and f can share vertices and edges,
@@ -383,28 +491,23 @@ public:
 					//  			using special tricks he has figured out for each class of shape
 					//  		Carl then throws all the triangles he created back into the bag
 					//  		then Carl breaks out and gets a new b from his bag
-					++b;
 					breakout = true;
 					break;
-				}
+				};
 			}
 
-			//	if Carl finishes checking every f in fragments and he is still holding b,
-			//		Carl adds b to fragments and gets a new b from his bag
-			fragments.push_back(*b);
-			++b;
+			//	Carl finishes checking every f in fragments and he is still holding b,
+			//	So this is it ... Carl adds b to fragments 
+			//		(where it magically transforms into an 'f' forever-more) 
+			//		and gets a new b from his bag
+			if (state == MISS) {
+				fragments.push_back(*current);
+			}
+			//bag.remove(*current);
+			current = next;
 		}
 
 		//if there are no triangles left in the bag, continue to circles...
-	}
-
-	void insertCapsule(list<capsule> &capsules, const capsule &c)
-	{
-		list<capsule>::iterator cptr = capsules.begin();
-		while (cptr != capsules.end() && cptr->area > c.area) {
-			++cptr;
-		}
-		capsules.insert(cptr, c);
 	}
 
 	void init()
@@ -421,7 +524,8 @@ public:
 					rand() % MAX_DIMENSION + 1,
 					rand() % MAX_DIMENSION + 1,
 					rand() % MAX_DIMENSION + 1),
-				rand() % MAX_RADIUS + 10);
+				rand() % MAX_RADIUS + 10
+			);
 			insertCapsule(capsules, c);
 
 			// Carl also collects the capsule's bounds
@@ -448,196 +552,18 @@ public:
 		// use the results to scale Carl's objects to the window
 		min -= MAX_RADIUS; max += MAX_RADIUS;
 		d = max - min;
-
-		cptr = capsules.begin();
-		while (cptr != capsules.end()) {
-			insertCapsule(unitCapsules, (*cptr - min) / d);
-			++cptr;
-		}
-
-		list<doubleTriangle>::iterator b = bag.begin();
-		while (b != bag.end()) {
-			unitBag.push_back((*b - min) / d);
-			++b;
-		}
-
-		//for (int i = 1; i < 2 * n; i++) {
-		//	bool result = false;
-		//	unsigned short j = 0;
-		//	while (!result && (j < tileCount)) {
-		//		result = trianglesIntersect(i, j);
-		//		j++;
-		//	}
-		//	if (!result) {
-		//		fragments.push_back(bag[i]);
-		//		tileCount++;
-		//	}
-		//}
-		//screenTiles.resize(tileCount);
+	
+		helper.init(capsules, bag, fragments, min, d);
 	}
 
-	void resize(double minScreen)
+	void resize(double d)
 	{
-		screenRects.clear();
-		screenLines.clear();
-		screenBag.clear();
-		screenFragments.clear();
-
-		list<capsule>::iterator cptr = unitCapsules.begin();
-		while (cptr != unitCapsules.end()) {
-			doubleRect r = cptr->rect * minScreen;
-			screenRects.push_back(r);
-			doubleLine l = cptr->line * minScreen;
-			screenLines.push_back(l);
-			++cptr;
-		}
-
-		list<doubleTriangle>::iterator u = unitBag.begin();
-		while (u != unitBag.end()) {
-			screenBag.push_back(*u * minScreen);
-			++u;
-		}
-
-		//int v = unitFragments.size();
-		//for (int i = 0; i < v; i++) {
-		//	doubleTriangle t = unitFragments[i] * minScreen;
-		//	screenFragments.push_back(t);
-		//}
-
-		//for (unsigned short i = 0; i < tileCount; i++) {
-		//	screenTriangles[i][0].x = triangles[i][0].x * minScreen;
-		//	screenTriangles[i][0].y = triangles[i][0].y * minScreen;
-		//	screenTriangles[i][1].x = triangles[i][1].x * minScreen;
-		//	screenTriangles[i][1].y = triangles[i][1].y * minScreen;
-		//	screenTriangles[i][2].x = triangles[i][2].x * minScreen;
-		//	screenTriangles[i][2].y = triangles[i][2].y * minScreen;
-		//}
-		//for (int i = 0; i < tileCount; i++) {
-		//	screenTiles[i][0].x = tiles[i][0].x * minScreen;
-		//	screenTiles[i][0].y = tiles[i][0].y * minScreen;
-		//	screenTiles[i][1].x = tiles[i][1].x * minScreen;
-		//	screenTiles[i][1].y = tiles[i][1].y * minScreen;
-		//	screenTiles[i][2].x = tiles[i][2].x * minScreen;
-		//	screenTiles[i][2].y = tiles[i][2].y * minScreen;
-		//}
-	}
-
-	void fillRects(Graphics &g)
-	{
-		doubleRect r;
-		for (int i = 0; i < n; i++) {
-			r = screenRects[i];
-			Point a(r.a.x, r.a.y);
-			Point b(r.b.x, r.b.y);
-			Point c(r.c.x, r.c.y);
-			Point d(r.d.x, r.d.y);
-			SolidBrush brush(Color(100, 140, 255));
-			GraphicsPath path;
-			path.AddLine(a, b);
-			path.AddLine(b, d);
-			path.AddLine(d, c);
-			path.AddLine(c, a);
-			g.FillPath(&brush, &path);
-		}
-	}
-
-	void drawRects(Graphics &g)
-	{
-		Pen pen(Color(0, 255, 0));
-		doubleRect r;
-		for (int i = 0; i < n; i++) {
-			r = screenRects[i];
-			Point a(r.a.x, r.a.y);
-			Point b(r.b.x, r.b.y);
-			Point c(r.c.x, r.c.y);
-			Point d(r.d.x, r.d.y);
-			GraphicsPath path;
-			path.AddLine(a, b);
-			path.AddLine(b, d);
-			path.AddLine(d, c);
-			path.AddLine(c, a);
-			g.DrawPath(&pen, &path);
-		}
-	}
-
-	void drawFragments(Graphics &g, int i)
-	{
-		Pen pen(Color(255, 0, 0));
-		GraphicsPath path;
-		Point a(screenFragments[i].a.x, screenFragments[i].a.y);
-		Point b(screenFragments[i].b.x, screenFragments[i].b.y);
-		Point c(screenFragments[i].c.x, screenFragments[i].c.y);
-		path.AddLine(a, b);
-		path.AddLine(b, c);
-		path.AddLine(c, a);
-		g.DrawPath(&pen, &path);
-	}
-
-	void paintBag(Graphics &g)
-	{
-		Pen pen(Color(255, 0, 0));
-		list<doubleTriangle>::iterator sb = screenBag.begin();
-		while (sb != screenBag.end()) {
-			GraphicsPath path;
-			Point a(sb->a.x, sb->a.y);
-			Point b(sb->b.x, sb->b.y);
-			Point c(sb->c.x, sb->c.y);
-			path.AddLine(a, b);
-			path.AddLine(b, c);
-			path.AddLine(c, a);
-			g.DrawPath(&pen, &path);
-			++sb;
-		}
-	}
-
-	void paintRectEndPoints(Graphics &g)
-	{
-		Pen pen(Color(255, 0, 0), 4);
-		doubleRect r;
-		for (int i = 0; i < n; i++) {
-			r = screenRects[i];
-			g.DrawEllipse(&pen, r.a.x - 2, r.a.y - 2, 4, 4);
-			g.DrawEllipse(&pen, r.b.x - 2, r.b.y - 2, 4, 4);
-			g.DrawEllipse(&pen, r.c.x - 2, r.c.y - 2, 4, 4);
-			g.DrawEllipse(&pen, r.d.x - 2, r.d.y - 2, 4, 4);
-		}
-	}
-
-	void paintLines(Graphics &g)
-	{
-		Pen pen(Color(255, 255, 255), 1);
-		doubleLine l;
-		for (int i = 0; i < n; i++) {
-			l = screenLines[i];
-			Point p(l.p.x, l.p.y);
-			Point q(l.q.x, l.q.y);
-			g.DrawLine(&pen, p, q);
-		}
-	}
-
-	void paintLineEndPoints(Graphics &g)
-	{
-		Pen pen(Color(0, 0, 0), 6);
-		doubleLine l;
-		for (int i = 0; i < n; i++) {
-			l = screenLines[i];
-			g.DrawEllipse(&pen, l.p.x - 3, l.p.y - 3, 6, 6);
-			g.DrawEllipse(&pen, l.q.x - 3, l.q.y - 3, 6, 6);
-		}
+		helper.resize(d);
 	}
 
 	void paint(Graphics &g)
 	{
-		fillRects(g);
-		//int s = fragments.size();
-		//for (int i = 0; i < s; i++) {
-		//	drawFragments(g, i);
-		//}
-		paintBag(g);
-		drawRects(g);
-		paintRectEndPoints(g);
-		paintLines(g);
-		paintLineEndPoints(g);
+		helper.paint(g);
 	}
 };
 

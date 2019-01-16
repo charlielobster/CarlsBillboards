@@ -4,12 +4,13 @@
 #include <objidl.h>
 #include <gdiplus.h>
 #include "Carl.h"
+#include "windowsHelper.h"
 
 using namespace Gdiplus;
 #pragma comment (lib,"Gdiplus.lib")
 
 #define MAX_LOADSTRING 100
-//
+
 using namespace std;
 
 Carl c;

@@ -1,6 +1,7 @@
 #pragma once
 
 #include "doublePoint.h"
+#include "doubleRect.h"
 
 class doubleLine
 {
@@ -13,6 +14,10 @@ public:
 	double dy;
 	double dx;
 	double d;
+	doublePoint minPoint;
+	doublePoint maxPoint;
+	doubleRect bounds;
+
 	double min;
 	double max;
 	doubleLine() {}
@@ -23,8 +28,16 @@ public:
 		dy = pq.y;
 		dx = pq.x;
 		d = pq.d;
-		min = min(p.min, q.min);
-		max = max(p.max, q.max);
+		minPoint = doublePoint(min(p.x, q.x), min(p.y, q.y));
+		maxPoint = doublePoint(max(p.x, q.x), max(p.y, q.y));
+		bounds = doubleRect(
+			minPoint,
+			doublePoint(minPoint.x, maxPoint.y),
+			maxPoint,
+			doublePoint(maxPoint.x, minPoint.y)
+		);
+		min = min(minPoint.x, minPoint.y);
+		max = max(maxPoint.x, maxPoint.y);
 		m = pq.m;
 		b = p.y - m * p.x;
 	}
@@ -73,11 +86,19 @@ public:
 		return ((l == r) || (r.q == l.p && r.p == l.q));
 	}
 
-	friend const doublePoint intersection(const doubleLine &l1, const doubleLine &l2)
+	friend const doublePoint intersection(const doubleLine &l, const doubleLine &r)
 	{
-		assert((l1.m - l2.m) != 0.0);
-		double x = (l2.b - l1.b) / (l1.m - l2.m);
-		double y = l1.m * x + l1.b; 
-		return doublePoint(x, y);
+		// get the intersection rect of the lines' bounds
+		doubleRect i = intersection(l.bounds, r.bounds);
+		if (i.area != 0) { 	// the lines completely miss if the intersection rect area is 0, 
+			assert((l.m - r.m) != 0.0);
+			double x = (r.b - l.b) / (l.m - r.m); // use y = mx + b to find the intersection point
+			double y = l.m * x + l.b;
+			doublePoint p(x, y);
+			if (i.contains(p)) { // the point must lie inside the intersection rect
+				return doublePoint(x, y);
+			}
+		}
+		return MIN_POINT;
 	}
 };

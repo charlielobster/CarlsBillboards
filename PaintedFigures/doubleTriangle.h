@@ -1,14 +1,43 @@
 #pragma once
 
+#include <list>
+
 #include "doublePoint.h"
 #include "doubleLine.h"
 
-struct sharedItems
+using namespace std;
+
+struct triangleIntersectionPoint
+{
+	unsigned short sourceIndex;
+	unsigned short targetIndex;
+	doublePoint point;
+	triangleIntersectionPoint(
+		unsigned short source, 
+		unsigned short target, 
+		const doublePoint &pt) : 
+		sourceIndex(source), 
+		targetIndex(target), 
+		point(pt) {}
+	triangleIntersectionPoint(const doublePoint &pt) : 
+		triangleIntersectionPoint(0, 0, pt) {}
+	triangleIntersectionPoint() : 
+		triangleIntersectionPoint(MIN_POINT) {}
+};
+
+struct triangleIntersections
+{
+	triangleIntersectionPoint pts[4];
+	int hits;
+	triangleIntersections() : hits(0) {}
+};
+
+struct triangleQuery
 {
 	int indices[3];
 	int hits;
 	int first;
-	sharedItems() : hits(0) , first(-1)
+	triangleQuery() : hits(0) , first(-1)
 	{
 		for (unsigned short i = 0; i < 3; i++) {
 			indices[i] = -1;
@@ -25,6 +54,11 @@ public:
 	doubleLine ab;
 	doubleLine bc;
 	doubleLine ca;
+	doublePoint minPoint;
+	doublePoint maxPoint;
+	doubleRect bounds;
+	double min;
+	double max;
 	double area;
 	doubleTriangle() {}
 
@@ -38,6 +72,17 @@ public:
 		// https://en.wikipedia.org/wiki/Heron%27s_formula
 		double s = .5 * (ab.d + bc.d + ca.d);
 		area = sqrt( s * (s - ab.d ) * (s - bc.d) * (s - ca.d) );
+
+		minPoint = doublePoint(min(a.x, min(b.x, c.x)), min(a.y, min(b.y, c.y)));
+		maxPoint = doublePoint(max(a.x, max(b.x, c.x)), max(a.y, max(b.y, c.y)));
+		bounds = doubleRect(
+			minPoint,
+			doublePoint(minPoint.x, maxPoint.y),
+			maxPoint,
+			doublePoint(maxPoint.x, minPoint.y)
+		);
+		min = min(minPoint.x, minPoint.y);
+		max = max(maxPoint.x, maxPoint.y);
 	}
 
 	doubleTriangle(const doubleTriangle &t) : a(t.a), b(t.b), c(t.c)
@@ -99,9 +144,9 @@ public:
 		return doubleTriangle(t.a * d, t.b * d, t.c * d);
 	}
 
-	friend sharedItems getSharedEdges(const doubleTriangle &s, const doubleTriangle &t)
+	friend triangleQuery getSharedEdges(const doubleTriangle &s, const doubleTriangle &t)
 	{
-		sharedItems result;
+		triangleQuery result;
 		for (int i = 0; i < 3; i++) {
 			for (int j = 0; j < 3; j++) {
 				if (colinear(s.edge(i), t.edge(j))) {
@@ -115,9 +160,9 @@ public:
 		return result;
 	}
 
-	friend sharedItems getSharedVertices(const doubleTriangle &s, const doubleTriangle &t)
+	friend triangleQuery getSharedVertices(const doubleTriangle &s, const doubleTriangle &t)
 	{
-		sharedItems result;
+		triangleQuery result;
 		for (int i = 0; i < 3; i++) {
 			for (int j = 0; j < 3; j++) {
 				if (s.vertex(i) == t.vertex(j)) {
@@ -128,6 +173,26 @@ public:
 			}
 		}
 		return result;
+	}
+
+	friend void insertTriangle(list<doubleTriangle> &triangles, const doubleTriangle &t)
+	{
+		list<doubleTriangle>::iterator tptr =  triangles.begin();
+		while (tptr != triangles.end() && tptr->area > t.area) {
+			++tptr;
+		}
+		triangles.insert(tptr, t);
+	}
+
+	friend triangleQuery boundVertices(const doubleTriangle &l, const doubleTriangle &r)
+	{
+		triangleQuery q;
+		for (int i = 0; i < 3; i++) {
+			if (r.bounds.contains(l.vertex(i))) {
+				q.indices[i] = 1; q.hits++; if (q.first == -1) q.first = i;
+			}
+		}
+		return q;
 	}
 };
 
