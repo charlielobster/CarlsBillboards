@@ -228,6 +228,25 @@ public:
 		// Carl finds either 2, 1 or 0 shared vertices
 		assert(v.hits >= 0 && v.hits <= 2);
 
+		// Carl finds some intersection points...
+		triangleIntersections intersections;
+		doublePoint intersectionPoint;
+		for (unsigned short i = 0; i < 3; i++) {
+			for (unsigned short j = 0; j < 3; j++) {
+				intersectionPoint = intersection(b.edge(i), f.edge(j));
+				if (intersectionPoint != MIN_POINT)
+				{
+					intersections.pts[intersections.hits++] = triangleIntersectionPoint(i, j, intersectionPoint);
+				}
+			}
+		}
+
+		// Carl notices that the edges of b and f can intersect at either 2 or 4 points...
+		assert(intersections.hits < 6 && (intersections.hits % 2 == 0));
+
+		// Carl wants to know more about whether any of b's vertices are bounded by f 
+		triangleQuery boundedVertices = boundVertices(b, f);
+
 		switch (v.hits)
 		{
 			case 2:
@@ -300,17 +319,15 @@ public:
 				//	they are either partially co-linear, in which case b and f will intersect at another point
 				//	and one triangle will completely overlap with other,
 				//	or they are just touching at the vertex, and can be handled as if they completely missed one another
-				int lIdx = v.first;
-				int rIdx = v.indices[lIdx];
-				doubleLine lEdge = b.edge(lIdx);
-				doubleLine rEdge = f.edge(rIdx);
-				doublePoint pt = intersection(lEdge, rEdge);
+				int lIndex = v.first;
+				int rIndex = v.indices[lIndex];
+				doubleLine lEdge = b.edge(lIndex);
+				doubleLine rEdge = f.edge(rIndex);
+				//doublePoint pt = intersection(lEdge, rEdge);
 
-				if (pt == doublePoint(MIN_DOUBLE, MIN_DOUBLE)) {
-					return INTERSECTION;
-				} else {
-					return MISS;
-				}
+				//if (boundedVertices.hits == 0 && pt == doublePoint(MIN_DOUBLE, MIN_DOUBLE)) {
+				//	return MISS;
+				//}
 			}
 			break;
 
@@ -318,33 +335,11 @@ public:
 			{
 				// Although no edges or vertices match, the triangles may still overlap in various ways...
 
-
-				// Carl wants to know more about whether 1 triangle's vertex is bounded by the other triangle 
-
-
-
-				// Carl finds some intersection points...
-				triangleIntersections intersections;
-				doublePoint intersectionPoint;
-				for (unsigned short i = 0; i < 3; i++) {
-					for (unsigned short j = 0; j < 3; j++) {
-						intersectionPoint = intersection(b.edge(i), f.edge(j));
-						if (intersectionPoint != MIN_POINT)
-						{
-							intersections.pts[intersections.hits++] = triangleIntersectionPoint(i, j, intersectionPoint);
-						}
-					}
-				}
-
-				// Carl notices that the edges of b and f can intersect at either 2 or 4 points...
-				//assert(result.hits < 6 && (result.hits % 2 == 0));
-
 				switch (intersections.hits) 
 				{
 				case 0: return MISS;
 				case 2:
 					{
-
 /*
 						b intersects f at 2 points
 						there are 3 cases:
@@ -362,16 +357,15 @@ public:
 					
 						// 2 cases: either two vertices in b are bounded by f, or only 1 vertex in b is bounded
 
-						triangleQuery bounded = boundVertices(b, f);
-						assert(0 < bounded.hits && bounded.hits < 3);
+						assert(0 < boundedVertices.hits && boundedVertices.hits < 3);
 
-						if (bounded.hits == 1) {
+						if (boundedVertices.hits == 1) {
 
-							doublePoint v1 = b.vertex((bounded.first + 1) % 3);
-							doublePoint v2 = b.vertex((bounded.first + 2) % 3);
+							doublePoint v1 = b.vertex((boundedVertices.first + 1) % 3);
+							doublePoint v2 = b.vertex((boundedVertices.first + 2) % 3);
 
 							doubleTriangle t1(intersections.pts[0].point, intersections.pts[1].point, v1);
-							doubleTriangle t2(intersections.pts[1].point, v2, v1);
+							doubleTriangle t2(intersections.pts[1].point, v1, v2);
 
 
 							//	1 vertex in b is bounded by f
@@ -382,6 +376,7 @@ public:
 
 							insertTriangle(bag, t1);
 							insertTriangle(bag, t2);
+							return DISCARD;
 						} else {
 
 
@@ -392,10 +387,30 @@ public:
 
 //							insertTriangle(bag, t);
 						}
-						return DISCARD;
+					
+					} else if (intersections.pts[0].sourceIndex != intersections.pts[1].sourceIndex &&
+						intersections.pts[0].targetIndex != intersections.pts[1].targetIndex) {
+
+						doubleLine secondFEdge = f.edge(intersections.pts[1].targetIndex);
+						doublePoint fVertex = secondFEdge.p;
+
+						if (boundedVertices.hits == 1) {
+
+							doublePoint v1 = b.vertex((boundedVertices.first + 1) % 3);
+							doublePoint v2 = b.vertex((boundedVertices.first + 2) % 3);
+
+							doubleTriangle t1(intersections.pts[0].point, v1, fVertex);
+							doubleTriangle t2(intersections.pts[0].point, v1, v2);
+							doubleTriangle t3(fVertex, v2, intersections.pts[1].point);
+
+							insertTriangle(bag, t1);
+							insertTriangle(bag, t2);
+							insertTriangle(bag, t3);
+							return DISCARD;
+						}
+
 					}
 				}
-				return INTERSECTION;
 				case 4:
 					{
 						doubleLine x;
